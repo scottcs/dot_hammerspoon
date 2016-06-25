@@ -1,0 +1,566 @@
+#!/usr/bin/env python3
+''' Get playing song information and store it, possibly with a rating. '''
+
+from argparse import ArgumentParser
+import os
+import sys
+import subprocess
+import time
+
+import sqlite3 as db
+
+DATABASE = '/Users/scott/ownCloud/appdata/songtrack.db'
+TABLE_SONGS = 'songs'
+TABLE_RATINGS = 'ratings'
+RUNNING = dict()
+UNKNOWN = '_UNKNOWN_'
+MANUAL = 'ADDED MANUALLY'
+
+
+def osascript(script):
+    ''' Run a string as Applescript '''
+    cmd = ['osascript', '-e', script]
+    out = subprocess.check_output(cmd, stderr=os.open(os.devnull, os.O_WRONLY))
+    if out:
+        out = out.decode('utf-8').strip()
+        if out == 'missing value':
+            out = ''
+    return out
+
+
+def is_running(app):
+    ''' Return true if the given app name is running '''
+    running = RUNNING.get(app, None)
+    if running is None:
+        script = ('tell application "System Events" to (name of processes) '
+                  'contains "{}"'.format(app))
+        running = osascript(script) == "true"
+        RUNNING[app] = running
+    return running
+
+
+def tell_app(app, script):
+    ''' Convenience function to run an Applescript tell command '''
+    full = 'tell application "{}" to {}'.format(app, script)
+    return osascript(full)
+
+
+def open_app(app):
+    ''' Open an app if it's not running '''
+    if not is_running(app):
+        subprocess.check_call(['open', '-a', app])
+        time.sleep(2)
+
+
+def is_playing(player=None):
+    ''' Return true if any player is playing a song '''
+    playing = None
+    if is_running('Spotify'):
+        if tell_app('Spotify', 'player state as string') == 'playing':
+            playing = 'Spotify'
+    if is_running('iTunes'):
+        if tell_app('iTunes', 'player state as string') == 'playing':
+            playing = 'iTunes'
+    if player is None:
+        return playing is not None
+    return playing == player
+
+
+def get_artist():
+    ''' Return the currently playing artist name '''
+    ret = ''
+    if is_running('Rdio') and is_playing('Rdio'):
+        ret = tell_app('Rdio', 'artist of current track as string')
+    if is_running('Spotify') and is_playing('Spotify'):
+        ret = tell_app('Spotify', 'artist of current track as string')
+    elif is_running('iTunes') and is_playing('iTunes'):
+        ret = tell_app('iTunes', 'artist of current track as string')
+    return ret
+
+
+def get_track():
+    ''' Return the currently playing track name '''
+    ret = ''
+    if is_running('Rdio') and is_playing('Rdio'):
+        ret = tell_app('Rdio', 'name of current track as string')
+    elif is_running('Spotify') and is_playing('Spotify'):
+        ret = tell_app('Spotify', 'name of current track as string')
+    elif is_running('iTunes') and is_playing('iTunes'):
+        ret = tell_app('iTunes', 'name of current track as string')
+    return ret
+
+
+def get_stream():
+    ''' Return the currently playing stream name, if applicable '''
+    ret = ('', '')
+    title = None
+    if is_running('iTunes') and is_playing('iTunes'):
+        title = tell_app('iTunes', 'current stream title as string')
+    if title:
+        ret = (title.split(' - '))
+    return ret
+
+
+def get_station():
+    ''' Return the currently playing "station" name, if applicable '''
+    ret = ''
+    if is_running('Rdio') and is_playing('Rdio'):
+        ret = tell_app('Rdio', 'rdio url of current track as string')
+        ret = '{}{}'.format('http://www.rdio.com', ret)
+    elif is_running('Spotify') and is_playing('Spotify'):
+        ret = tell_app('Spotify', 'spotify url of current track as string')
+    elif is_running('iTunes') and is_playing('iTunes'):
+        ret = 'iTunes Library'
+    return ret
+
+
+def get_album():
+    ''' Return the album name of the currently playing track '''
+    ret = None
+    if is_running('Rdio') and is_playing('Rdio'):
+        print('LAZY ALERT: get album from Rdio')
+    elif is_running('Spotify') and is_playing('Spotify'):
+        ret = tell_app('Spotify', 'album of current track as string')
+    elif is_running('iTunes') and is_playing('iTunes'):
+        ret = tell_app('iTunes', 'album of current track as string')
+    return ret
+
+
+def get_playing_info():
+    ''' Return the artist, track, album and station for the current song '''
+    artist, track, album, station = None, None, None, None
+    if is_playing():
+        artist = get_artist()
+        track = get_track()
+        if not artist:
+            station = track
+            try:
+                artist, track = get_stream()
+            except ValueError:
+                pass
+        else:
+            station = get_station()
+    album = get_album()
+    # Shorten BAGeL Radio name
+    if station and station.lower().startswith('bagel radio'):
+        station = 'BAGeL Radio'
+    return (artist, track, album, station)
+
+
+def play_song(url):
+    ''' Play a song by url if possible '''
+    if url.startswith('spotify:'):
+        open_app('Spotify')
+        tell_app('Spotify', 'play track "{}"'.format(url))
+        return True
+    else:
+        print('Not a Spotify song... don\'t know how to play that.')
+    return False
+
+
+def itunes_rate_track(rating, station):
+    ''' Rate a current track in iTunes if it's open and playing '''
+    if (is_running('iTunes') and
+            is_playing('iTunes') and
+            station.lower() != 'bagel radio'):
+        out = osascript(
+            '''
+            tell application "iTunes"
+                set rating of current track to {i_rating}
+            end tell
+            '''.format(i_rating=rating * 20))
+        if out:
+            print(out)
+
+
+def db_drop_ratings(conn):
+    ''' Drop ratings table '''
+    with conn:
+        curs = conn.cursor()
+        print('Dropping table {}'.format(TABLE_RATINGS))
+        curs.execute('DROP TABLE {}'.format(TABLE_RATINGS))
+
+
+def db_create_ratings(conn):
+    ''' Create ratings table '''
+    with conn:
+        curs = conn.cursor()
+        print('Creating table {}'.format(TABLE_RATINGS))
+        columns = ('id INTEGER PRIMARY KEY, '
+                   'song_id integer REFERENCES {} (id), '
+                   'rating smallint'
+                   '').format(TABLE_SONGS)
+        curs.execute('CREATE TABLE IF NOT EXISTS {} ({});'
+                     ''.format(TABLE_RATINGS, columns))
+
+
+def db_drop_songs(conn):
+    ''' Drop songs table '''
+    with conn:
+        curs = conn.cursor()
+        print('Dropping table {}'.format(TABLE_SONGS))
+        curs.execute('DROP TABLE {}'.format(TABLE_SONGS))
+
+
+def db_create_songs(conn):
+    ''' Create songs table '''
+    with conn:
+        curs = conn.cursor()
+        print('Creating table {}'.format(TABLE_SONGS))
+        columns = ('id INTEGER PRIMARY KEY, '
+                   'title varchar, '
+                   'artist varchar, '
+                   'album varchar, '
+                   'source varchar, '
+                   'UNIQUE(title, artist, album)')
+        curs.execute('CREATE TABLE IF NOT EXISTS {} ({});'
+                     ''.format(TABLE_SONGS, columns))
+
+
+def db_wipe_ratings(conn):
+    ''' Drop and create ratings table '''
+    try:
+        db_drop_ratings(conn)
+    except db.OperationalError as e:
+        if 'no such table' not in str(e).lower():
+            db_create_songs(conn)
+        else:
+            raise e
+    db_create_ratings(conn)
+
+
+def db_wipe_all(conn):
+    ''' Drop and recreate all tables '''
+    try:
+        db_drop_ratings(conn)
+    except db.OperationalError as e:
+        if 'no such table' not in str(e).lower():
+            raise e
+    try:
+        db_drop_songs(conn)
+    except db.OperationalError as e:
+        if 'no such table' not in str(e).lower():
+            raise e
+    db_create_songs(conn)
+    db_create_ratings(conn)
+
+
+def print_song(song_id, artist=None, track=None, album=None, source=None,
+               rating=None):
+    ''' Print song info '''
+    artist = artist or UNKNOWN
+    track = track or UNKNOWN
+    album = album or UNKNOWN
+    source = source or UNKNOWN
+    rating = rating or 0
+    stars = make_stars(rating)
+    print('{: 6}> {:<5.5} {:>35.35} - {:<25.25} [{:<23.23}] ::: {}'
+          ''.format(song_id,
+                    stars,
+                    track,
+                    artist,
+                    album,
+                    source))
+
+
+def sanitize_rating(rating):
+    ''' Make sure rating is within bounds '''
+    if rating is not None:
+        rating = min(5, max(0, rating))
+    return rating
+
+
+def db_add_track(conn, artist=None, track=None, album=None, source=None,
+                 rating=None):
+    ''' Write info to database '''
+    artist = artist or UNKNOWN
+    track = track or UNKNOWN
+    album = album or UNKNOWN
+    source = source or UNKNOWN
+
+    # Add song to songs database
+    sql = ('INSERT INTO {} (title, artist, album, source) '
+           'VALUES (?, ?, ?, ?);'
+           '').format(TABLE_SONGS)
+    with conn:
+        curs = conn.cursor()
+        try:
+            curs.execute(sql, (track, artist, album, source))
+        except db.IntegrityError as e:
+            # raise e unless song already exists, which is fine.
+            if 'UNIQUE constraint failed' not in str(e):
+                raise e
+    # get song id
+    sql = ('SELECT id FROM {} WHERE title = ? AND artist = ? AND album = ?'
+           '').format(TABLE_SONGS)
+    song_id = None
+    with conn:
+        curs = conn.cursor()
+        curs.execute(sql, (track, artist, album))
+        song_id = curs.fetchone()[0]
+    # set rating
+    if rating is not None and song_id is not None:
+        sql = ('INSERT INTO {} (song_id, rating) '
+               'VALUES (?, ?);'
+               '').format(TABLE_RATINGS)
+        with conn:
+            curs = conn.cursor()
+            curs.execute(sql, (song_id, rating))
+    return song_id
+
+
+def db_clear_ratings(conn, song_id):
+    ''' Remove all ratings for a song from the database '''
+    sql = 'DELETE FROM {} WHERE song_id = ?'.format(TABLE_RATINGS)
+    with conn:
+        curs = conn.cursor()
+        curs.execute(sql, (song_id,))
+
+
+def db_remove_song(conn, song_id):
+    ''' Remove a song from the database '''
+    sql = 'DELETE FROM {} WHERE id = ?'.format(TABLE_SONGS)
+    with conn:
+        curs = conn.cursor()
+        curs.execute(sql, (song_id,))
+
+
+def db_fetch_song(conn, song_id):
+    ''' Fetch song info by id '''
+    song = None
+    sql = ('SELECT artist,title,album,source FROM {} WHERE id = ?'
+           '').format(TABLE_SONGS)
+    with conn:
+        curs = conn.cursor()
+        curs.execute(sql, (song_id,))
+        song = curs.fetchone()
+    return song
+
+
+def db_get_rating(conn, song_id, avg=False):
+    ''' Get the latest or average rating for a song '''
+    sel = 'rating'
+    if avg:
+        sel = 'avg(rating)'
+
+    sql = ('SELECT {sel} FROM {song} INNER JOIN {rating} '
+           'ON {song}.id = {rating}.song_id '
+           'WHERE {song}.id = ?'
+           '').format(song=TABLE_SONGS,
+                      rating=TABLE_RATINGS,
+                      sel=sel)
+    rating = 0
+    with conn:
+        curs = conn.cursor()
+        curs.execute(sql, (song_id,))
+        # Round the rating to nearest half integer
+        try:
+            result = float(curs.fetchall()[-1][0])
+            rating = int(0.5 + (2.0 * result)) / 2.0
+        except (IndexError, TypeError):
+            pass
+    return rating
+
+
+def make_stars(rating):
+    ''' Turn a numeric rating into a graphic star rating '''
+    half = (rating - int(rating)) > 0
+    rating = int(rating)
+    result = '*' * rating
+    if half:
+        result += '-'
+    return '{:5}'.format(result)
+
+
+def make_key(track, artist):
+    ''' Make a unique key from artist and track '''
+    return track + '::' + artist
+
+
+def db_list_tracks(conn, num, sort=None, dupes=None):
+    ''' List the num most recent entries '''
+    sql = 'SELECT * FROM {}'.format(TABLE_SONGS)
+    if sort:
+        sql += ' ORDER BY artist ASC, title ASC'
+    else:
+        sql += ' ORDER BY id DESC'
+    if num > 0:
+        sql += ' LIMIT {}'.format(num)
+    sql += ';'
+    results = []
+    dupedict = {}
+    with conn:
+        curs = conn.cursor()
+        curs.execute(sql)
+        results = curs.fetchall()
+
+    if not results:
+        print('No songs yet.')
+        return
+
+    if dupes:
+        for res in results:
+            track, artist = res[1:3]
+            key = make_key(track, artist)
+            dupedict.setdefault(key, 0)
+            dupedict[key] += 1
+
+    for res in results:
+        song_id, track, artist, album, source = res[:5]
+        if not dupes or dupedict.get(make_key(track, artist), 0) > 1:
+            print_song(song_id,
+                       artist=artist,
+                       track=track,
+                       album=album,
+                       source=source,
+                       rating=db_get_rating(conn, song_id, avg=True))
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description='get info on currently playing track')
+    parser.add_argument('--rating', '-r',
+                        action='store',
+                        type=int,
+                        help='rate currently playing song')
+    parser.add_argument('--play_song', '-p',
+                        action='store',
+                        type=int,
+                        metavar='ID',
+                        help='play song in Spotify if possible')
+    parser.add_argument('--list_most_recent', '-l',
+                        action='store',
+                        type=int,
+                        metavar='NUM',
+                        const=-1,
+                        nargs='?',
+                        help='list NUM most recent songs added (default ALL)')
+    parser.add_argument('--delete_song', '-d',
+                        action='store',
+                        type=int,
+                        metavar='ID',
+                        help='delete song (and all ratings for it) by ID')
+    parser.add_argument('--add_song', '-a',
+                        action='store',
+                        nargs=2,
+                        type=str,
+                        metavar=('TITLE', 'ARTIST'),
+                        help='manually add song with rating=3')
+    parser.add_argument('--clear_ratings', '-c',
+                        action='store',
+                        type=int,
+                        metavar='ID',
+                        help='remove all ratings for a song by ID')
+    parser.add_argument('--sort_alphabetical', '-s',
+                        action='store_true',
+                        help='sort alphabetically rather than most recent')
+    parser.add_argument('--possible_duplicates', '-2',
+                        action='store_true',
+                        help='show only possible duplicate songs')
+    parser.add_argument('--wipe_ratings',
+                        action='store_true',
+                        help='remove all rating info')
+    parser.add_argument('--wipe_all',
+                        action='store_true',
+                        help='remove all song/rating info')
+    args = vars(parser.parse_args())
+
+    dbconn = db.connect(DATABASE)
+
+    try:
+        if args['play_song']:
+            play_song_id = args['play_song']
+            song_tuple = db_fetch_song(dbconn, play_song_id)
+            if song_tuple:
+                if play_song(song_tuple[3]):
+                    print_song(play_song_id,
+                               artist=song_tuple[0],
+                               track=song_tuple[1],
+                               album=song_tuple[2],
+                               source=song_tuple[3],
+                               rating=db_get_rating(dbconn,
+                                                    play_song_id,
+                                                    avg=True))
+            else:
+                print('Can\'t find song to play: {}'.format(play_song_id))
+            sys.exit(0)
+
+        if args['add_song']:
+            new_song_id = db_add_track(dbconn,
+                                       track=args['add_song'][0],
+                                       artist=args['add_song'][1],
+                                       album=UNKNOWN,
+                                       source=MANUAL,
+                                       rating=3)
+            song_tuple = db_fetch_song(dbconn, new_song_id)
+            print_song(new_song_id,
+                       artist=song_tuple[0],
+                       track=song_tuple[1],
+                       album=song_tuple[2],
+                       source=song_tuple[3],
+                       rating=db_get_rating(dbconn, new_song_id, avg=True))
+            sys.exit(0)
+
+        rm_song_id = args['delete_song'] or args['clear_ratings']
+        if rm_song_id is not None:
+            song_tuple = db_fetch_song(dbconn, rm_song_id)
+            if song_tuple is not None:
+                db_clear_ratings(dbconn, rm_song_id)
+                if args['delete_song']:
+                    db_remove_song(dbconn, rm_song_id)
+                    print('Removed: {} - {} [{}]'.format(*song_tuple))
+                else:
+                    print('Cleared ratings: {} - {} [{}]'.format(*song_tuple))
+            else:
+                print('Song not found with id: {}'.format(rm_song_id))
+            dbconn.close()
+            sys.exit(0)
+
+        # possible_duplicates implies list_most_recent
+        if args['possible_duplicates'] and args['list_most_recent'] is None:
+            # a value of -1 means "list all"
+            args['list_most_recent'] = -1
+
+        if args['list_most_recent'] is not None:
+            db_list_tracks(dbconn, args['list_most_recent'],
+                           sort=args['sort_alphabetical'],
+                           dupes=args['possible_duplicates'])
+            dbconn.close()
+            sys.exit(0)
+
+        if args['wipe_all']:
+            db_wipe_all(dbconn)
+            dbconn.close()
+            sys.exit(0)
+        elif args['wipe_ratings']:
+            db_wipe_ratings(dbconn)
+            dbconn.close()
+            sys.exit(0)
+
+        cur_artist, cur_track, cur_album, cur_station = get_playing_info()
+        cur_rating = sanitize_rating(args['rating'])
+        if cur_artist or cur_track:
+            new_song_id = db_add_track(dbconn,
+                                       artist=cur_artist,
+                                       track=cur_track,
+                                       album=cur_album,
+                                       source=cur_station,
+                                       rating=cur_rating)
+            itunes_rate_track(cur_rating, cur_station)
+            print_song(new_song_id,
+                       artist=cur_artist,
+                       track=cur_track,
+                       album=cur_album,
+                       source=cur_station,
+                       rating=db_get_rating(dbconn, new_song_id, avg=True))
+        else:
+            print('Nothing is playing.')
+    except db.OperationalError as e:
+        no_songs = 'no such table: {}'.format(TABLE_SONGS)
+        no_ratings = 'no such table: {}'.format(TABLE_RATINGS)
+        if (no_songs in str(e).lower() or no_ratings in str(e).lower()):
+            print('Missing tables; Please run "track --wipe_all" '
+                  'to reset database')
+        else:
+            raise e
+    finally:
+        dbconn.close()

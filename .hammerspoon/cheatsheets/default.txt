@@ -1,0 +1,41 @@
+Hammerspoon Key Bindings
+========================
+
+hyper-b             Google Chrome   ("b"rowser)
+hyper-c             Slack           ("c"hat)
+hyper-f             Finder
+hyper-i             iTunes
+hyper-m             Messages
+hyper-q             Qbserve
+hyper-s             Spotify
+hyper-t             iTerm           ("t"erminal)
+hyper-v             nvimOpen        ("v"im)
+hyper-'             Color Picker
+
+shift-hyper-r       Hammerspoon: Reload Config
+shift-hyper-y       Hammerspoon: Toggle Console
+
+shift-hyper-0       WorkTime: Next mode
+shift-hyper-8       WorkTime: Pause / Unpause
+shift-hyper-9       WorkTime: Reset
+
+shift-hyper-t       Songs: Get Info
+shift-hyper-p       Songs: Play/Pause
+shift-hyper-[       Songs: Previos Track
+shift-hyper-]       Songs: Next Track
+shift-hyper-`       Songs: rate 0
+shift-hyper-1       Songs: rate 1
+shift-hyper-2       Songs: rate 2
+shift-hyper-3       Songs: rate 3
+shift-hyper-4       Songs: rate 4
+shift-hyper-5       Songs: rate 5
+
+shift-hyper-\       Caffeine: toggle on/off
+shift-hyper-c       Cheatsheet: show/hide
+shift-hyper-m       Skype Mute Toggle
+shift-hyper-v       Force Paste
+
+hyper-space         Notational Velocity
+shift-hyper-space   TIL
+opt-space           Scratchpad
+shift-opt-space     Timer

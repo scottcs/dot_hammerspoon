@@ -1,2 +1,2 @@
 # dot_hammerspoon
-My Hammerspoon config
+My Hammerspoon configuration
