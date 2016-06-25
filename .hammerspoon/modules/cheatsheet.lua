@@ -56,13 +56,13 @@ local function parseTitle(title)
     -- m.log.d('toSplit', toSplit)
     local parts = ustr.split(toSplit, '[ /]')
     if parts[1] then
-      window = hs.http.encodeForQuery(parts[1]:gsub('[:%%%._%?/%[%]%(%)%+%$]', ''))
+      window = hs.http.encodeForQuery(parts[1]:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
     end
     if parts[2] then
-      pane = hs.http.encodeForQuery(parts[2]:gsub('[:%%%._%?/%[%]%(%)%+%$]', ''))
+      pane = hs.http.encodeForQuery(parts[2]:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
     end
     if parts[3] then
-      cmd = hs.http.encodeForQuery(parts[3]:gsub('[:%%%._%?/%[%]%(%)%+%$]', ''))
+      cmd = hs.http.encodeForQuery(parts[3]:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
     end
   end
   -- m.log.d(window, pane, cmd)
