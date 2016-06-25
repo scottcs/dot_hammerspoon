@@ -1,9 +1,6 @@
 -- module: Cheatsheet - show text file popup overlays on-demand
 -- (Inspired by the CheatSheet app by Stefan Fürst)
 --
--- Note: due to cheatsheet caching, it is necessary to reload Hammerspoon to
--- see changes made to the cheatsheets themselves.
---
 -- Cheatsheets live in the config.cheatsheet.path directory.
 -- For cheatsheets to be determined by application context, cheatsheet
 -- filenames must match the application bundle ID (e.g.
@@ -17,6 +14,7 @@ local draw  = require('hs.drawing')
 local geom  = require('hs.geometry')
 
 local cheat_sheets = nil
+local last_changed = nil
 local visible = nil
 
 -- Get current tmux window name, pane name, and shell command by parsing the
@@ -52,6 +50,18 @@ end
 -- convert a cheatsheet name to a full path string
 local function toPath(filename)
   return ufile.toPath(m.cfg.path, filename..'.txt')
+end
+
+-- return true if the cheatsheet has changed since the last time we've looked
+-- at it, false otherwise.
+local function hasChanged(name)
+  local modified = ufile.lastModified(toPath(name))
+  return last_changed[name] == nil or last_changed[name] < modified
+end
+
+-- return true if the cheat_sheet[name] needs updating
+local function shouldUpdate(name)
+  return cheat_sheets[name] == nil or hasChanged(name)
 end
 
 -- make an id from the passed in args
@@ -94,11 +104,12 @@ end
 --       or possibly markdown/webview
 --
 -- parse the given cheatsheet file and prepare for drawing, splitting it into
--- two pages for side-by-side rendering.
-local function parseCheatFile(filename)
+-- two pages for side-by-side rendering. This also saves the file's
+-- modification time in last_changed.
+local function parseCheatFile(name)
   local llines = {}
   local rlines = {}
-  local path = toPath(filename)
+  local path = toPath(name)
 
   local i = 1
   local lines = llines
@@ -108,11 +119,14 @@ local function parseCheatFile(filename)
     table.insert(lines, line)
   end
 
+  last_changed[name] = ufile.lastModified(path)
+
   return table.concat(llines, '\n'), table.concat(rlines, '\n')
 end
 
 -- create a new cheatsheet object to be drawn, and cache it
 local function makeCheatsheet(name)
+  m.log.d('making:', name)
   local screen = hs.screen.mainScreen()
   local bgrect = screen:frame():scale(0.94):move({x=0, y=-20})
 
@@ -163,21 +177,24 @@ function m.toggle(name)
     hideCheatSheets()
   else
     name = name or nameFromContext()
-    if cheat_sheets[name] == nil then makeCheatsheet(name) end
+    if shouldUpdate(name) then makeCheatsheet(name) end
     showCheatsheet(name)
   end
 end
 
 function m.start()
   cheat_sheets = {}
+  last_changed = {}
 end
 
 function m.stop()
   for name,sheet in pairs(cheat_sheets) do
     for _,obj in ipairs(sheet) do obj:delete() end
     cheat_sheets[name] = nil
+    last_changed[name] = nil
   end
   cheat_sheets = nil
+  last_changed = nil
   visible = nil
 end
 

@@ -82,6 +82,13 @@ function lib.isOlderThan(file, seconds)
   return false
 end
 
+-- Return the last modified time of a file in epoch seconds.
+function lib.lastModified(file)
+  local when = os.time()
+  if lib.exists(file) then when = hs.fs.attributes(file, 'modification') end
+  return when
+end
+
 -- If any files are found in the given path, make a list of them and call the
 -- given callback function with that list.
 function lib.runOnFiles(path, callback)
