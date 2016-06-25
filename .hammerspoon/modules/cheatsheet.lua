@@ -218,14 +218,22 @@ local function chooserShow()
     local choices = {}
 
     for name, weight in pairs(names) do
+      local exists = findCheatsheet(name, false) ~= false
       choices[#choices+1] = {
         text = name,
-        subText = findCheatsheet(name, false) and 'Edit' or 'Create New',
+        subText = exists and 'Edit' or 'Create New',
+        exists = exists,
         weight = weight,
       }
     end
 
-    table.sort(choices, function(a, b) return a.weight > b.weight end)
+    -- sort by existing, then by weight
+    table.sort(choices, function(a, b)
+      if a.exists == b.exists then
+        return a.weight > b.weight
+      end
+      return a.exists and not b.exists
+    end)
     chooser:rows(#choices)
     chooser:choices(choices)
 
