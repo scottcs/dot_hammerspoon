@@ -30,8 +30,10 @@ shift-hyper-3       Songs: rate 3
 shift-hyper-4       Songs: rate 4
 shift-hyper-5       Songs: rate 5
 
-shift-hyper-\       Caffeine: toggle on/off
 shift-hyper-c       Cheatsheet: show/hide
+shift-hyper-x       Cheatsheet: edit
+
+shift-hyper-\       Caffeine: toggle on/off
 shift-hyper-m       Skype Mute Toggle
 shift-hyper-v       Force Paste
 
