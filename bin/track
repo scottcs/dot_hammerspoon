@@ -9,7 +9,7 @@ import time
 
 import sqlite3 as db
 
-DATABASE = '/Users/scott/ownCloud/appdata/songtrack.db'
+DATABASE = os.environ.get('TRACK_DB') or (os.environ.get('HOME') + 'track.db')
 TABLE_SONGS = 'songs'
 TABLE_RATINGS = 'ratings'
 RUNNING = dict()
@@ -69,8 +69,6 @@ def is_playing(player=None):
 def get_artist():
     ''' Return the currently playing artist name '''
     ret = ''
-    if is_running('Rdio') and is_playing('Rdio'):
-        ret = tell_app('Rdio', 'artist of current track as string')
     if is_running('Spotify') and is_playing('Spotify'):
         ret = tell_app('Spotify', 'artist of current track as string')
     elif is_running('iTunes') and is_playing('iTunes'):
@@ -81,9 +79,7 @@ def get_artist():
 def get_track():
     ''' Return the currently playing track name '''
     ret = ''
-    if is_running('Rdio') and is_playing('Rdio'):
-        ret = tell_app('Rdio', 'name of current track as string')
-    elif is_running('Spotify') and is_playing('Spotify'):
+    if is_running('Spotify') and is_playing('Spotify'):
         ret = tell_app('Spotify', 'name of current track as string')
     elif is_running('iTunes') and is_playing('iTunes'):
         ret = tell_app('iTunes', 'name of current track as string')
@@ -104,10 +100,7 @@ def get_stream():
 def get_station():
     ''' Return the currently playing "station" name, if applicable '''
     ret = ''
-    if is_running('Rdio') and is_playing('Rdio'):
-        ret = tell_app('Rdio', 'rdio url of current track as string')
-        ret = '{}{}'.format('http://www.rdio.com', ret)
-    elif is_running('Spotify') and is_playing('Spotify'):
+    if is_running('Spotify') and is_playing('Spotify'):
         ret = tell_app('Spotify', 'spotify url of current track as string')
     elif is_running('iTunes') and is_playing('iTunes'):
         ret = 'iTunes Library'
@@ -117,9 +110,7 @@ def get_station():
 def get_album():
     ''' Return the album name of the currently playing track '''
     ret = None
-    if is_running('Rdio') and is_playing('Rdio'):
-        print('LAZY ALERT: get album from Rdio')
-    elif is_running('Spotify') and is_playing('Spotify'):
+    if is_running('Spotify') and is_playing('Spotify'):
         ret = tell_app('Spotify', 'album of current track as string')
     elif is_running('iTunes') and is_playing('iTunes'):
         ret = tell_app('iTunes', 'album of current track as string')
