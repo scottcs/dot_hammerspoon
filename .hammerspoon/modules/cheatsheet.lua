@@ -73,31 +73,50 @@ local function findCheatsheet(id, default)
   return ufile.exists(toPath(id)) and id or default
 end
 
+-- returns a set of names to look for within the current application context.
+local function allNamesFromContext()
+  -- names is a table where keys are the names, and the values are the
+  -- weights, so that the list is unique but sortable
+  local names = {[m.cfg.defaultName] = 1}
+  local app = hs.application.frontmostApplication()
+  local id = app:bundleID()
+  names[id] = 2
+
+  if id == 'com.googlecode.iterm2' then
+    local window, pane, cmd = parseTmuxTitle(app:mainWindow():title())
+    -- if any of these are nil, it doesn't matter. the names table will have
+    -- unique keys, and the weights will still sort correctly even with gaps.
+    names[toID(id, window)] = 3
+    names[toID(id, pane)] = 4
+    names[toID(id, cmd)] = 5
+    names[toID(id, window, pane)] = 6
+    names[toID(id, window, cmd)] = 7
+    names[toID(id, pane, cmd)] = 8
+    names[toID(id, window, pane, cmd)] = 9
+  end
+
+  return names
+end
+
 -- find the name for the current cheatsheet based on focused window, and
 -- potentially extra data about the focused window (e.g. current tmux tab or
 -- currently running command in a terminal window).
-local function nameFromContext()
-  local app = hs.application.frontmostApplication()
-  local id = app:bundleID()
+local function findNameFromContext()
+  local names = allNamesFromContext()
+  local id = nil
+  local heaviest = 0
 
-  if id == 'com.googlecode.iterm2' then
-    -- special case handler for iTerm2... check currently running command
-    local window, pane, cmd = parseTmuxTitle(app:mainWindow():title())
-    local term_id = id
-
-    -- from low to high precedence (each line overrides the previous).
-    -- i.e. command is more specific than pane is more specific than window.
-    id = findCheatsheet(toID(term_id, window), id)
-    id = findCheatsheet(toID(term_id, pane), id)
-    id = findCheatsheet(toID(term_id, cmd), id)
-    id = findCheatsheet(toID(term_id, window, pane), id)
-    id = findCheatsheet(toID(term_id, window, cmd), id)
-    id = findCheatsheet(toID(term_id, pane, cmd), id)
-    id = findCheatsheet(toID(term_id, window, pane, cmd), id)
+  for name, weight in pairs(names) do
+    if heaviest < weight then
+      local found = findCheatsheet(name, id)
+      if found ~= id then
+        heaviest = weight
+        id = found
+      end
+    end
   end
 
-  if findCheatsheet(id) then return id end
-  return m.cfg.defaultName
+  return id
 end
 
 -- TODO: make stylized text with color codes from cheat files
@@ -176,7 +195,7 @@ function m.toggle(name)
   if visible then
     hideCheatSheets()
   else
-    name = name or nameFromContext()
+    name = name or findNameFromContext()
     if shouldUpdate(name) then makeCheatsheet(name) end
     showCheatsheet(name)
   end
