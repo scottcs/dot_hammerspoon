@@ -28,11 +28,13 @@ local function refocus()
   end
 end
 
--- Get current tmux window name, pane name, and shell command by parsing the
--- tmux title. I currently set this using tmux's set-titles-string
--- configuration set to '|#S|#W|#T' which, in iTerm, results in something like:
+-- Get current window name, tmux pane name (if applicable), and shell command
+-- (if applicable) by parsing the window title.
+--
+-- For iTerm/tmux, I currently set this using tmux's set-titles-string
+-- configuration set to '|#S|#W|#T' which results in something like:
 -- '1. |session|window|hostname: command arg arg arg'
-local function parseTmuxTitle(title)
+local function parseTitle(title)
   local window = nil
   local pane = nil
   local cmd = nil
@@ -46,7 +48,24 @@ local function parseTmuxTitle(title)
       local words = ustr.split(ustr.trim(cmds[2]), '%s')
       if words ~= nil then cmd = words[1] end
     end
+  else
+    -- kind of a hack for non-terminal window titles.
+    -- for example, split on ' ' for web pages named
+    -- 'Hammerspoon docs: hs.chooser'
+    local toSplit = #titles > 1 and titles[1] or title
+    -- m.log.d('toSplit', toSplit)
+    local parts = ustr.split(toSplit, '[ /]')
+    if parts[1] then
+      window = hs.http.encodeForQuery(parts[1]:gsub('[:%%%._%?/%[%]%(%)%+%$]', ''))
+    end
+    if parts[2] then
+      pane = hs.http.encodeForQuery(parts[2]:gsub('[:%%%._%?/%[%]%(%)%+%$]', ''))
+    end
+    if parts[3] then
+      cmd = hs.http.encodeForQuery(parts[3]:gsub('[:%%%._%?/%[%]%(%)%+%$]', ''))
+    end
   end
+  -- m.log.d(window, pane, cmd)
   return window, pane, cmd
 end
 
@@ -93,19 +112,18 @@ local function allNamesFromContext()
   local id = app:bundleID()
   names[id] = 2
 
-  if id == 'com.googlecode.iterm2' then
-    local window, pane, cmd = parseTmuxTitle(app:mainWindow():title())
-    -- if any of these are nil, it doesn't matter. the names table will have
-    -- unique keys, and the weights will still sort correctly even with gaps.
-    names[toID(id, window)] = 3
-    names[toID(id, pane)] = 4
-    names[toID(id, cmd)] = 5
-    names[toID(id, window, pane)] = 6
-    names[toID(id, window, cmd)] = 7
-    names[toID(id, pane, cmd)] = 8
-    names[toID(id, window, pane, cmd)] = 9
-  end
+  local window, pane, cmd = parseTitle(app:mainWindow():title())
+  -- if any of these are nil, it doesn't matter. the names table will have
+  -- unique keys, and the weights will still sort correctly even with gaps.
+  names[toID(id, window)] = 3
+  names[toID(id, pane)] = 4
+  names[toID(id, cmd)] = 5
+  names[toID(id, window, pane)] = 6
+  names[toID(id, window, cmd)] = 7
+  names[toID(id, pane, cmd)] = 8
+  names[toID(id, window, pane, cmd)] = 9
 
+  -- m.log.d('names', hs.inspect(names))
   return names
 end
 
