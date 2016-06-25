@@ -74,6 +74,7 @@ cfg.caffeine = {
 cfg.cheatsheet = {
   maxLines = 38,  -- determined from trial/error with Fira Mono 14pt font
   defaultName = 'default',
+  chooserWidth = 50,
   path = ufile.toPath(cfg.global.paths.hs, 'cheatsheets'),
   colors = {
     bg     = {red=0.1, green=0.1, blue=0.1, alpha=0.9},

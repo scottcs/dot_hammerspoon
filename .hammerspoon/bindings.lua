@@ -79,6 +79,7 @@ function bindings.bind()
     {key = 'r',  fn = hs_reload},
     {key = 't',  fn = hsm.songs.getInfo},
     {key = 'v',  fn = uapp.forcePaste},
+    {key = 'x',  fn = hsm.cheatsheet.chooserToggle},
     {key = 'y',  fn = toggleConsole},
   }, function(object)
     hs.hotkey.bind(mod.shyper, object.key, object.fn)

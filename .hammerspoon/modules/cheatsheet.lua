@@ -13,9 +13,20 @@ local ufile = require('utils.file')
 local draw  = require('hs.drawing')
 local geom  = require('hs.geometry')
 
+local lastApp = nil
+local chooser = nil
+local chooserVisible = nil
 local cheat_sheets = nil
 local last_changed = nil
 local visible = nil
+
+-- refocus on the app that was focused before the chooser was invoked
+local function refocus()
+  if lastApp ~= nil then
+    lastApp:activate()
+    lastApp = nil
+  end
+end
 
 -- Get current tmux window name, pane name, and shell command by parsing the
 -- tmux title. I currently set this using tmux's set-titles-string
@@ -42,7 +53,7 @@ end
 -- show the given named cheatsheet (if it exists) on-screen
 local function showCheatsheet(name)
   if cheat_sheets[name] == nil then return end
-  m.log.d('drawing:', name)
+  -- m.log.d('drawing:', name)
   for _,obj in ipairs(cheat_sheets[name]) do obj:show() end
   visible = true
 end
@@ -69,7 +80,7 @@ local function toID(...) return table.concat({...}, '.') end
 
 -- return valid id if the cheatsheet exists
 local function findCheatsheet(id, default)
-  m.log.d('looking for id:', id)
+  -- m.log.d('looking for id:', id)
   return ufile.exists(toPath(id)) and id or default
 end
 
@@ -145,7 +156,7 @@ end
 
 -- create a new cheatsheet object to be drawn, and cache it
 local function makeCheatsheet(name)
-  m.log.d('making:', name)
+  -- m.log.d('making:', name)
   local screen = hs.screen.mainScreen()
   local bgrect = screen:frame():scale(0.94):move({x=0, y=-20})
 
@@ -189,6 +200,55 @@ local function hideCheatSheets()
   visible = false
 end
 
+-- edit a cheatsheet
+local function editCheatsheet(name)
+  if not name then return end
+  local file = toPath(name)
+  if not ufile.exists(file) then ufile.create(file) end
+  hs.task.new('/usr/bin/open', nil, {'-t', file}):start()
+end
+
+-- show the chooser
+local function chooserShow()
+  if chooser ~= nil then
+    lastApp = hs.application.frontmostApplication()
+
+    chooser:query('')
+    local names = allNamesFromContext()
+    local choices = {}
+
+    for name, weight in pairs(names) do
+      choices[#choices+1] = {
+        text = name,
+        subText = findCheatsheet(name, false) and 'Edit' or 'Create New',
+        weight = weight,
+      }
+    end
+
+    table.sort(choices, function(a, b) return a.weight > b.weight end)
+    chooser:rows(#choices)
+    chooser:choices(choices)
+
+    chooser:show()
+    chooserVisible = true
+  end
+end
+
+-- hide the chooser
+local function chooserHide()
+  if chooser ~= nil then
+    -- hide calls choiceCallback
+    chooser:hide()
+  end
+end
+
+-- callback when a chooser choice is made
+local function choiceCallback(choice)
+  refocus()
+  chooserVisible = false
+  if choice ~= nil then editCheatsheet(choice.text) end
+end
+
 -- show/hide the named sheet (if name is given), else the sheet determined from
 -- the currently focused application.
 function m.toggle(name)
@@ -201,12 +261,22 @@ function m.toggle(name)
   end
 end
 
+-- toggle chooser visibility
+function m.chooserToggle()
+  if chooser ~= nil then
+    if chooserVisible then chooserHide() else chooserShow() end
+  end
+end
+
 function m.start()
   cheat_sheets = {}
   last_changed = {}
+  chooser = hs.chooser.new(choiceCallback)
+  chooser:width(m.cfg.chooserWidth)
 end
 
 function m.stop()
+  if chooser then chooser:delete() end
   for name,sheet in pairs(cheat_sheets) do
     for _,obj in ipairs(sheet) do obj:delete() end
     cheat_sheets[name] = nil
@@ -214,6 +284,7 @@ function m.stop()
   end
   cheat_sheets = nil
   last_changed = nil
+  chooser = nil
   visible = nil
 end
 
