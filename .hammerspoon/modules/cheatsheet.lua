@@ -19,21 +19,26 @@ local geom  = require('hs.geometry')
 local cheat_sheets = nil
 local visible = nil
 
--- Get current shell command by parsing the window title.
--- I currently set this using tmux's set-titles-string configuration set to
--- '#S:#I.#P #W|#T'
-local function getCurrentShellCmd(title)
+-- Get current tmux window name, pane name, and shell command by parsing the
+-- tmux title. I currently set this using tmux's set-titles-string
+-- configuration set to '|#S|#W|#T' which, in iTerm, results in something like:
+-- '1. |session|window|hostname: command arg arg arg'
+local function parseTmuxTitle(title)
+  local window = nil
+  local pane = nil
+  local cmd = nil
+
   local titles = ustr.split(title, '|')
-  if #titles >= 2 then
-    local cmds = ustr.split(titles[2], ':')
+  if #titles >= 4 then
+    window = titles[2]
+    pane = titles[3]
+    local cmds = ustr.split(titles[4], ':')
     if #cmds >= 2 then
       local words = ustr.split(ustr.trim(cmds[2]), '%s')
-      if words ~= nil then
-        return words[1]
-      end
+      if words ~= nil then cmd = words[1] end
     end
   end
-  return nil
+  return window, pane, cmd
 end
 
 -- show the given named cheatsheet (if it exists) on-screen
@@ -49,23 +54,39 @@ local function toPath(filename)
   return ufile.toPath(m.cfg.path, filename..'.txt')
 end
 
+-- make an id from the passed in args
+local function toID(...) return table.concat({...}, '.') end
+
+-- return valid id if the cheatsheet exists
+local function findCheatsheet(id, default)
+  m.log.d('looking for id:', id)
+  return ufile.exists(toPath(id)) and id or default
+end
+
 -- find the name for the current cheatsheet based on focused window, and
 -- potentially extra data about the focused window (e.g. current tmux tab or
 -- currently running command in a terminal window).
 local function nameFromContext()
   local app = hs.application.frontmostApplication()
   local id = app:bundleID()
+
   if id == 'com.googlecode.iterm2' then
     -- special case handler for iTerm2... check currently running command
-    local cmd = getCurrentShellCmd(app:mainWindow():title())
-    if cmd ~= nil then
-      local new_id = id..'.'..cmd
-      m.log.d('looking for special id:', new_id)
-      if ufile.exists(toPath(new_id)) then id = new_id end
-    end
+    local window, pane, cmd = parseTmuxTitle(app:mainWindow():title())
+    local term_id = id
+
+    -- from low to high precedence (each line overrides the previous).
+    -- i.e. command is more specific than pane is more specific than window.
+    id = findCheatsheet(toID(term_id, window), id)
+    id = findCheatsheet(toID(term_id, pane), id)
+    id = findCheatsheet(toID(term_id, cmd), id)
+    id = findCheatsheet(toID(term_id, window, pane), id)
+    id = findCheatsheet(toID(term_id, window, cmd), id)
+    id = findCheatsheet(toID(term_id, pane, cmd), id)
+    id = findCheatsheet(toID(term_id, window, pane, cmd), id)
   end
-  m.log.d('looking for id:', id)
-  if ufile.exists(toPath(id)) then return id end
+
+  if findCheatsheet(id) then return id end
   return m.cfg.defaultName
 end
 
