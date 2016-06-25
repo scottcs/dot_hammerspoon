@@ -101,6 +101,7 @@ cfg.hazel = {
     dump      = ufile.toPath(cfg.global.paths.base,  'Dump'),
     desktop   = ufile.toPath(cfg.global.paths.base,  'Desktop'),
     downloads = ufile.toPath(cfg.global.paths.base,  'Downloads'),
+    documents = ufile.toPath(cfg.global.paths.base,  'Documents'),
     transfer  = ufile.toPath(cfg.global.paths.cloud, 'xfer'),
   },
   hiddenExtensions = {  -- when unhiding extensions, ignore these

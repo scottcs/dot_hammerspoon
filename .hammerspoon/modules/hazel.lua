@@ -22,6 +22,7 @@ local watch = {
   downloads = nil,
   dump = nil,
   desktop = nil,
+  documents = nil,
 }
 
 local timer = nil
@@ -135,11 +136,23 @@ local function watchDesktop(files)
   end)
 end
 
+-- callback for watching the documents directory
+local function watchDocuments(files)
+  -- m.log.d('watchDocuments ----')
+  watchPath(m.cfg.path.documents, files, function(data)
+    -- m.log.d('watchDocuments processing', hs.inspect(data))
+
+    -- unhide extensions for files written here
+    ufile.unhideExtension(data.file, data.ext, m.cfg.hiddenExtensions)
+  end)
+end
+
 local function checkPaths()
   -- m.log.d('checkPaths (on the hour)')
   ufile.runOnFiles(m.cfg.path.downloads, watchDownloads)
   ufile.runOnFiles(m.cfg.path.dump, watchDump)
   ufile.runOnFiles(m.cfg.path.desktop, watchDesktop)
+  ufile.runOnFiles(m.cfg.path.documents, watchDocuments)
 end
 
 function m.start()
@@ -149,6 +162,7 @@ function m.start()
   watch.downloads = hs.pathwatcher.new(m.cfg.path.downloads, watchDownloads)
   watch.dump = hs.pathwatcher.new(m.cfg.path.dump, watchDump)
   watch.desktop = hs.pathwatcher.new(m.cfg.path.desktop, watchDesktop)
+  watch.documents = hs.pathwatcher.new(m.cfg.path.documents, watchDocuments)
   for k,_ in pairs(watch) do watch[k]:start() end
 
   checkPaths()
