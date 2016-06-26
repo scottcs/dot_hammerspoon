@@ -48,9 +48,9 @@ cfg.battery = {
 ---------------
 cfg.browser = {
   apps = {
-    safari  = 'com.apple.Safari',
-    chrome  = 'com.google.Chrome',
-    firefox = 'org.mozilla.firefox',
+    ['com.apple.Safari'] = true,
+    ['com.google.Chrome'] = true,
+    ['org.mozilla.firefox'] = true,
   },
 }
 
