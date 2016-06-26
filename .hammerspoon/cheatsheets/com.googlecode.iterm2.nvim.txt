@@ -28,7 +28,8 @@ vis                         Visa Account
 ====        Lua        ====
 #!                          Shebang line
 hsmod                       Hammerspoon module
-log{d,w,e,i}                Hammerspoon log.{d,w,e,i}
+hslib                       Hammerspoon utils library
+l{d,w,e,i}                  Hammerspoon module m.log.{d,w,e,i}
 fun[m]                      function [m.function]
 for[p,i]                    for loop [pair for loop, ipair for loop]
 
