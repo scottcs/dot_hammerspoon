@@ -1,0 +1,381 @@
+/* ---- Front Matter ---- */
+
+/* Pandoc header DIV. Contains .title, .author and .date. Comes before div#TOC.
+   Only appears if one of those three are in the document.
+*/
+
+div#header, header {
+  /* Put border on bottom. Separates it from TOC or body that comes after it. */
+  border-bottom: 1px solid #aaa;
+  margin-bottom: 0.5em;
+}
+
+ /* Pandoc title header (h1.title) */
+.title {
+  text-align: center;
+}
+
+/* Pandoc author(s) and date headers (h2.author and h3.date) */
+.author, .date {
+  text-align: center;
+}
+
+/* Pandoc table of contents DIV when using the --toc option.
+   NOTE: this doesn't support Pandoc's --id-prefix option for #TOC and #header.
+   Probably would need to use div[id$='TOC'] and div[id$='header'] as selectors.
+*/
+
+div#TOC, nav#TOC {
+  /* Put border on bottom to separate it from body. */
+  border-bottom: 1px solid #aaa;
+  margin-bottom: 0.5em;
+}
+
+/* ---- Headers and sections ---- */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Helvetica Neue", Helvetica, "Liberation Sans", Calibri, Arial, sans-serif;
+}
+
+/* Pandoc with --section-divs option */
+
+/* Nested sections */
+div div, section section {
+  /* This will increasingly indent nested header sections */
+  margin-left: 2em;
+}
+
+html, body {
+  /* setting height to 100% causes scrollbar to appear */
+  /* setting it to 99% isn't perfect either (there's space below the border) */
+  height: 99%;
+  margin: 0;
+  padding: 0;
+  background-color: #333;
+  color: #bbb;
+  font-family: Verdana, sans-serif;
+  font-size: 16px;
+}
+
+body {
+  border: 6px solid #444;
+  column-count: 2;
+  column-rule: 3px solid #444;
+  column-gap: 0;
+  column-fill: auto;
+}
+
+div.box {
+  height: 100%;
+  margin: 8px;
+}
+
+p {}
+
+blockquote {
+  font-style: italic;
+}
+
+/* All list items */
+li {}
+
+/* Loosely spaced list item */
+li > p {
+  /* IE: lack of space above a <li> when the item is inside a <p> */
+  margin-top: 1em;
+}
+
+/* Whole unordered list */
+ul {}
+
+/* Unordered list item */
+ul li {}
+
+/* Whole ordered list */
+ol {}
+
+/* Ordered list item */
+ol li {}
+
+hr {}
+
+/* ---- Some span elements --- */
+
+/* Subscripts. Pandoc: H~2~O */
+sub {}
+
+/* Superscripts. Pandoc: The 2^nd^ try. */
+sup {}
+
+/* Emphasis. Markdown: *emphasis* or _emphasis_ */
+em {}
+
+/* Emphasis within emphasis: *This is all *emphasized* except that* */
+em > em {
+  font-style: normal;
+}
+
+/* Markdown **strong** or __strong__ */
+strong {}
+
+/* ---- Links (anchors) ---- */
+
+/* DaringFireball-style links */
+a {
+  text-decoration: none;
+}
+
+a:link {
+  text-decoration: none;
+  color: #ddd;
+  border-color: #888;
+  border-width: 0 0 1px 0;
+  border-style: none none solid none;
+  padding: 3px 0px 2px 0px;
+  background-color: inherit;
+}
+
+a:visited {
+  color: #ddd;
+  border-color: #999;
+  border-width: 0 0 1px 0;
+  border-style: none none dotted none;
+  padding: 3px 0px 2px 0px;
+  background-color: inherit;
+}
+
+a:hover {
+  color: #fff;
+  text-decoration: none;
+  background-color: #606060;
+  border-color: #606060;
+}
+
+/* ---- Images ---- */
+
+img {
+  /* Let it be inline left/right where it wants to be, but verticality make
+     it in the middle to look nicer, but opinions differ, and if in a multi-line
+     paragraph, it might not be so great.
+   */
+  vertical-align: middle;
+}
+
+/* Pandoc figure-style image */
+div.figure {
+  /* Center the image and caption */
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Pandoc figure-style caption within div.figure */
+p.caption {
+  /* Inherits div.figure props by default */
+}
+
+/* ---- Code blocks and spans ---- */
+
+pre, code {
+  background-color: #202020;
+  /* This will override the overflow:auto if present */
+  white-space: pre-wrap; /* css-3 */
+  font-family: "Fira Mono", "Source Code Pro", "Menlo", monospace;
+}
+
+/* Code blocks */
+pre {
+  /* Distinguish pre blocks from other text by more than the font with a
+   * background tint. */
+  padding: 0.5em; /* Since we have a background color */
+  border-radius: 5px; /* Softens it */
+  /* Give it a some definition */
+  border: 1px solid #112;
+  /* Set it off left and right, seems to look a bit nicer when we have a
+   * background */
+  margin-left:  0.5em;
+  margin-right: 0.5em;
+  /* Use an auto scroll box for long lines, unless word-wrap is enabled */
+  white-space: pre;
+  overflow: auto;
+}
+
+/* All inline code spans */
+code {}
+
+/* Source code blocks */
+code.sourceCode {
+  font-size: 14px;
+}
+
+/* Source code keywords */
+code.sourceCode > span.kw {
+  color: #a6c;
+}
+
+/* Source code operators */
+code.sourceCode > span.ot {
+  color: #66a;
+}
+
+/* Code spans in paragraphs and tight lists */
+p > code, li > code {
+  /* Pad a little from adjacent text */
+  padding-left:  2px;
+  padding-right: 2px;
+}
+
+/* Code span in a loose list */
+li > p code {
+  /* We have room for some more background color above and below */
+  padding: 2px;
+}
+
+/* ---- Math ---- */
+
+/* Pandoc inline math default and --jsmath inline math */
+span.math {
+  /* Tried font-style:italic here, and it messed up MathJax rendering in some browsers. Maybe don't mess with at all. */
+}
+
+/* Pandoc --jsmath display math */
+div.math {}
+
+/* Pandoc --latexmathml math */
+span.LaTeX {}
+
+/* Pandoc --gladtex math */
+eq {}
+
+/* ---- Tables ---- */
+
+/*  A clean textbook-like style with horizontal lines above and below and under
+    the header. Rows highlight on hover to help scanning the table on screen.
+*/
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0; /* IE 6 */
+
+  border-bottom: 2pt solid #fff;
+  /* The caption on top will not have a bottom-border */
+  border-top: 2pt solid #fff;
+
+  /* Center */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Entire table header */
+thead {
+  border-bottom: 1pt solid #fff;
+  background-color: #111;
+}
+
+/* Each header row */
+tr.header {}
+
+/* Entire table  body */
+tbody {}
+
+/* Table body rows */
+
+tr {}
+
+/* Use .odd and .even classes to avoid styling rows in other tables */
+tr.odd:hover, tr.even:hover {
+  background-color: #111;
+}
+
+/* Odd and even rows */
+tr.odd {}
+tr.even {}
+
+/* Table cells and table header cells */
+td, th {
+  vertical-align: top; /* Word */
+  vertical-align: baseline; /* Others */
+  padding-left:   0.5em;
+  padding-right:  0.5em;
+  padding-top:    0.2em;
+  padding-bottom: 0.2em;
+}
+
+/* Removes padding on left and right of table for a tight look. Good if thead
+ * has no background color
+ */
+/*
+tr td:last-child, tr th:last-child {
+  padding-right: 0;
+}
+tr td:first-child, tr th:first-child {
+  padding-left: 0;
+}
+*/
+
+/* Table header cells */
+th {
+  font-weight: bold;
+}
+
+/* Table footer (what appears here if caption is on top?) */
+tfoot {}
+
+/* This is for a table caption tag, not the p.caption Pandoc uses in a div.figure */
+caption {
+  caption-side: top;
+  border: none;
+  font-size: 0.9em;
+  font-style: italic;
+  text-align: center;
+  margin-bottom: 0.3em; /* Good for when on top */
+  padding-bottom: 0.2em;
+}
+
+/* ---- Definition lists ---- */
+
+/* The whole list */
+dl {
+  border-top: 2pt solid #fff;
+  padding-top: 0.5em;
+  border-bottom: 2pt solid #fff;
+}
+
+/* Definition term */
+dt {
+  font-weight: bold;
+}
+
+/* 2nd or greater term in the list */
+dd+dt {
+  border-top: 1pt solid #fff;
+  padding-top: 0.5em;
+}
+
+/* A definition */
+dd {
+  margin-bottom: 0.5em;
+}
+
+/* 2nd or greater definition of a term */
+dd+dd {
+  border-top: 1px solid #fff; /* To separate multiple definitions */
+}
+
+/* ---- Footnotes ---- */
+
+/* Pandoc, MultiMarkdown footnote links */
+a.footnote, a.footnoteRef {
+    font-size: small;
+    vertical-align: text-top;
+}
+
+/* Pandoc, MultiMarkdown, ?? footnote back links */
+a[href^="#fnref"], a.reversefootnote {}
+
+/* Pandoc footnotes div at end of the document */
+div.footnotes {}
+
+/* A footnote item within that div */
+div.footnotes li[id^="fn"] {}

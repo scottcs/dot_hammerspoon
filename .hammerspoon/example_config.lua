@@ -22,6 +22,8 @@ cfg.global.paths.cloud = ufile.toPath(cfg.global.paths.base, 'Dropbox')
 cfg.global.paths.hs    = ufile.toPath(cfg.global.paths.base, '.hammerspoon')
 cfg.global.paths.data  = ufile.toPath(cfg.global.paths.hs,   'data')
 cfg.global.paths.media = ufile.toPath(cfg.global.paths.hs,   'media')
+cfg.global.paths.ul    = '/usr/local'
+cfg.global.paths.ulbin = ufile.toPath(cfg.global.paths.ul,   'bin')
 
 ------------------
 --  appwindows  --
@@ -72,23 +74,13 @@ cfg.caffeine = {
 --  cheatsheet  --
 ------------------
 cfg.cheatsheet = {
-  maxLines = 38,  -- determined from trial/error with Fira Mono 14pt font
   defaultName = 'default',
   chooserWidth = 50,
-  path = ufile.toPath(cfg.global.paths.hs, 'cheatsheets'),
-  colors = {
-    bg     = {red=0.1, green=0.1, blue=0.1, alpha=0.9},
-    border = {red=0.3, green=0.3, blue=0.3, alpha=0.9},
-    text   = {red=0.7, green=0.7, blue=0.7, alpha=1.0},
+  path = {
+    dir    = ufile.toPath(cfg.global.paths.hs,    'cheatsheets'),
+    css    = ufile.toPath(cfg.global.paths.media, 'cheatsheet.css'),
+    pandoc = ufile.toPath(cfg.global.paths.ulbin, 'pandoc'),
   },
-}
-
-cfg.cheatsheet.style = {
-  font = MONOFONT,
-  size = 14,
-  color = cfg.cheatsheet.colors.text,
-  alignment = 'natural',
-  lineBreak = 'wordWrap',
 }
 
 -------------

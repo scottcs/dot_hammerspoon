@@ -4,14 +4,12 @@
 -- Cheatsheets live in the config.cheatsheet.path directory.
 -- For cheatsheets to be determined by application context, cheatsheet
 -- filenames must match the application bundle ID (e.g.
--- org.hammerspoon.Hammerspoon.txt for Hammerspoon).
+-- org.hammerspoon.Hammerspoon.md for Hammerspoon).
 --
 local m = {}
 
 local ustr  = require('utils.string')
 local ufile = require('utils.file')
-local draw  = require('hs.drawing')
-local geom  = require('hs.geometry')
 
 local lastApp = nil
 local chooser = nil
@@ -19,12 +17,30 @@ local chooserVisible = nil
 local cheat_sheets = nil
 local last_changed = nil
 local visible = nil
+local view = nil
+local css = nil
+
+-- constants
+local FILE  = 'file://'
+local HTTP  = 'http://'
+local HTTPS = 'https://'
 
 -- refocus on the app that was focused before the chooser was invoked
 local function refocus()
   if lastApp ~= nil then
     lastApp:activate()
     lastApp = nil
+  end
+end
+
+-- turn the clicked URL into an actual web url by removing the file://dir
+-- prefix.
+local function clickedURL(fullURL)
+  local url = ustr.chopBeginning(fullURL, FILE..m.cfg.path.dir)
+  if ustr.beginsWith(url, HTTP) or ustr.beginsWith(url, HTTPS) then
+    return url
+  else
+    return HTTP..url
   end
 end
 
@@ -69,17 +85,9 @@ local function parseTitle(title)
   return window, pane, cmd
 end
 
--- show the given named cheatsheet (if it exists) on-screen
-local function showCheatsheet(name)
-  if cheat_sheets[name] == nil then return end
-  -- m.log.d('drawing:', name)
-  for _,obj in ipairs(cheat_sheets[name]) do obj:show() end
-  visible = true
-end
-
 -- convert a cheatsheet name to a full path string
 local function toPath(filename)
-  return ufile.toPath(m.cfg.path, filename..'.txt')
+  return ufile.toPath(m.cfg.path.dir, filename..'.txt')
 end
 
 -- return true if the cheatsheet has changed since the last time we've looked
@@ -91,7 +99,8 @@ end
 
 -- return true if the cheat_sheet[name] needs updating
 local function shouldUpdate(name)
-  return cheat_sheets[name] == nil or hasChanged(name)
+  local should = cheat_sheets[name] == nil or hasChanged(name)
+  return should
 end
 
 -- make an id from the passed in args
@@ -148,72 +157,120 @@ local function findNameFromContext()
   return id
 end
 
--- TODO: make stylized text with color codes from cheat files
---       or possibly markdown/webview
---
--- parse the given cheatsheet file and prepare for drawing, splitting it into
--- two pages for side-by-side rendering. This also saves the file's
--- modification time in last_changed.
-local function parseCheatFile(name)
-  local llines = {}
-  local rlines = {}
-  local path = toPath(name)
-
-  local i = 1
-  local lines = llines
-  for line in io.lines(path) do
-    if i > m.cfg.maxLines then lines = rlines end
-    i = i + 1
-    table.insert(lines, line)
+-- load the stylsheet for the webview
+local function loadCSS(path)
+  path = path or m.cfg.path.css
+  local modified = ufile.lastModified(path)
+  if last_changed[path] == nil or last_changed[path] < modified then
+    last_changed[path] = modified
+    local f = io.open(path, 'r')
+    css = f:read("*all")
+    f:close()
   end
-
-  last_changed[name] = ufile.lastModified(path)
-
-  return table.concat(llines, '\n'), table.concat(rlines, '\n')
 end
 
--- create a new cheatsheet object to be drawn, and cache it
-local function makeCheatsheet(name)
-  -- m.log.d('making:', name)
+-- load the markdown file and convert to html, calling the given callback with
+-- the html.
+local function markdownToHTML(name, callback)
+  local filePath = toPath(name)
+  last_changed[name] = ufile.lastModified(filePath)
+
+  local function onTaskComplete(exitCode, stdOut, stdErr)
+    if exitCode == 0 then
+      local html = [[
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <style>
+      ]]..css..[[
+        </style>
+      </head>
+      <body>
+      <div class="box">
+      ]]..stdOut..[[
+      </div>
+      </body>
+      </html>
+      ]]
+
+      -- m.log.d('html', html)
+
+      callback(html)
+    else
+      m.log.e('error converting markdown to html:', stdErr)
+    end
+  end
+
+  hs.task.new(m.cfg.path.pandoc, onTaskComplete, {
+    '-f', 'markdown_github+fenced_code_attributes',
+    '-t', 'html5',
+    filePath}):start()
+end
+
+-- make link clicks go to the default system url handler
+local function policy(event, webview, data)
+  if event == 'navigationAction' or event == 'newWindow' then
+    hs.task.new('/usr/bin/open', nil, {clickedURL(data.request.URL)}):start()
+  end
+  return false
+end
+
+-- create a new webview with the given html and title
+local function createView(html, title)
   local screen = hs.screen.mainScreen()
-  local bgrect = screen:frame():scale(0.94):move({x=0, y=-20})
+  local viewRect = screen:frame():scale(0.94):move({x=0, y=-20})
+  view = hs.webview.new(viewRect, {
+    javaScriptEnabled=false,
+    -- developerExtrasEnabled=true,
+  })
+  local masks = hs.webview.windowMasks
+  view:windowStyle(
+    masks.borderless |
+    masks.utility |
+    masks.HUD |
+    masks.titled |
+    masks.nonactivating
+  )
+  view:windowTitle(title)
+  view:html(html)
+end
 
-  -- set up left and right text areas
-  local ltextrect = hs.geometry.copy(bgrect)
-  ltextrect.w = ltextrect.w / 2
-  local rtextrect = hs.geometry.copy(ltextrect)
-  rtextrect.x = ltextrect.x + ltextrect.w + 1
-  ltextrect = ltextrect:scale(0.99)
-  rtextrect = rtextrect:scale(0.99)
+-- load the html for a cheatsheet, then call the callback
+local function loadCheatsheet(name, callback)
+  m.log.d('making cheatsheet', name)
+  markdownToHTML(name, function(html)
+    cheat_sheets[name] = html
+    callback()
+  end)
+end
 
-  -- get the text for left and right areas
-  local ltext, rtext = parseCheatFile(name)
-
-  -- draw the sheets
-  local sheet = draw.rectangle(bgrect)
-  local lsheet_text = draw.text(ltextrect, ltext)
-  local rsheet_text = draw.text(rtextrect, rtext)
-
-  -- set colors and styles
-  sheet:setStrokeColor(m.cfg.colors.border)
-  sheet:setFill(true)
-  sheet:setFillColor(m.cfg.colors.bg)
-  sheet:setStrokeWidth(3)
-  sheet:bringToFront(true)
-
-  lsheet_text:setTextStyle(m.cfg.style)
-  lsheet_text:bringToFront(true)
-  rsheet_text:setTextStyle(m.cfg.style)
-  rsheet_text:bringToFront(true)
-
-  -- cache the layers of the cheatsheet
-  cheat_sheets[name] = {sheet, lsheet_text, rsheet_text}
+-- show the given named cheatsheet (if it exists) on-screen
+local function showCheatsheet(name)
+  if cheat_sheets[name] == nil then return end
+  createView(cheat_sheets[name], name)
+  hs.timer.waitUntil(
+    function() return view ~= nil end,
+    function()
+      hs.timer.waitWhile(
+        function() view:loading() end,
+        function()
+          -- m.log.d('done loading (showing view now)', name)
+          view:show()
+          view:policyCallback(policy)
+          visible = true
+        end,
+        0.05
+      )
+    end,
+    0.05
+  )
 end
 
 -- hide all cheatsheets
-local function hideCheatSheets()
-  for _,sheet in pairs(cheat_sheets) do
-    for _,obj in ipairs(sheet) do obj:hide() end
+local function hideCheatsheet()
+  if view ~= nil then
+    view:delete()
+    view = nil
   end
   visible = false
 end
@@ -227,7 +284,7 @@ local function editCheatsheet(name)
 end
 
 -- show the chooser
-local function chooserShow()
+local function showChooser()
   if chooser ~= nil then
     lastApp = hs.application.frontmostApplication()
 
@@ -261,7 +318,7 @@ local function chooserShow()
 end
 
 -- hide the chooser
-local function chooserHide()
+local function hideChooser()
   if chooser ~= nil then
     -- hide calls choiceCallback
     chooser:hide()
@@ -279,18 +336,23 @@ end
 -- the currently focused application.
 function m.toggle(name)
   if visible then
-    hideCheatSheets()
+    hideCheatsheet()
   else
     name = name or findNameFromContext()
-    if shouldUpdate(name) then makeCheatsheet(name) end
-    showCheatsheet(name)
+    if shouldUpdate(name) then
+      loadCheatsheet(name, function()
+        showCheatsheet(name)
+      end)
+    else
+      showCheatsheet(name)
+    end
   end
 end
 
 -- toggle chooser visibility
 function m.chooserToggle()
   if chooser ~= nil then
-    if chooserVisible then chooserHide() else chooserShow() end
+    if chooserVisible then hideChooser() else showChooser() end
   end
 end
 
@@ -299,12 +361,13 @@ function m.start()
   last_changed = {}
   chooser = hs.chooser.new(choiceCallback)
   chooser:width(m.cfg.chooserWidth)
+  loadCSS()
 end
 
 function m.stop()
   if chooser then chooser:delete() end
-  for name,sheet in pairs(cheat_sheets) do
-    for _,obj in ipairs(sheet) do obj:delete() end
+  hideCheatsheet()
+  for name,_ in pairs(cheat_sheets) do
     cheat_sheets[name] = nil
     last_changed[name] = nil
   end
@@ -312,6 +375,7 @@ function m.stop()
   last_changed = nil
   chooser = nil
   visible = nil
+  css = nil
 end
 
 return m
