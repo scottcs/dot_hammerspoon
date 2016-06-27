@@ -199,15 +199,14 @@ pre {
   /* Use an auto scroll box for long lines, unless word-wrap is enabled */
   white-space: pre;
   overflow: auto;
+  font-size: 14px;
 }
 
 /* All inline code spans */
 code {}
 
 /* Source code blocks */
-code.sourceCode {
-  font-size: 14px;
-}
+code.sourceCode {}
 
 /* Source code keywords */
 code.sourceCode > span.kw {
