@@ -33,4 +33,22 @@ function lib.unquote(str)
   return str
 end
 
+-- string begins with another string
+function lib.beginsWith(str, other)
+   return string.sub(str, 1, string.len(other)) == other
+end
+
+-- string ends with another string
+function lib.endsWith(str, other)
+   return string.sub(str, -string.len(other)) == other
+end
+
+-- chop off the beginning of a string if it matches the other string
+function lib.chopBeginning(str, beginning)
+  if lib.beginsWith(str, beginning) then
+    return string.sub(str, string.len(beginning))
+  end
+  return str
+end
+
 return lib
