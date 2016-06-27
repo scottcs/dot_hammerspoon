@@ -77,7 +77,7 @@ cfg.cheatsheet = {
   defaultName = 'default',
   chooserWidth = 50,
   path = {
-    dir    = ufile.toPath(cfg.global.paths.hs,    'cheatsheets'),
+    dir    = ufile.toPath(cfg.global.paths.cloud, 'cheatsheets'),
     css    = ufile.toPath(cfg.global.paths.media, 'cheatsheet.css'),
     pandoc = ufile.toPath(cfg.global.paths.ulbin, 'pandoc'),
   },

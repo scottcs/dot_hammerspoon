@@ -87,7 +87,8 @@ end
 
 -- convert a cheatsheet name to a full path string
 local function toPath(filename)
-  return ufile.toPath(m.cfg.path.dir, filename..'.txt')
+  if filename == nil then return nil end
+  return ufile.toPath(m.cfg.path.dir, filename..'.md')
 end
 
 -- return true if the cheatsheet has changed since the last time we've looked
@@ -201,10 +202,15 @@ local function markdownToHTML(name, callback)
     end
   end
 
-  hs.task.new(m.cfg.path.pandoc, onTaskComplete, {
-    '-f', 'markdown_github+fenced_code_attributes',
-    '-t', 'html5',
-    filePath}):start()
+  if ufile.exists(filePath) then
+    hs.task.new(m.cfg.path.pandoc, onTaskComplete, {
+      '-f', 'markdown_github+fenced_code_attributes',
+      '-t', 'html5',
+      filePath
+    }):start()
+  else
+    m.log.w('path does not exist:', filePath)
+  end
 end
 
 -- make link clicks go to the default system url handler
@@ -237,10 +243,12 @@ end
 
 -- load the html for a cheatsheet, then call the callback
 local function loadCheatsheet(name, callback)
-  m.log.d('making cheatsheet', name)
+  -- m.log.d('loading cheatsheet', name)
   markdownToHTML(name, function(html)
-    cheat_sheets[name] = html
-    callback()
+    if html then
+      cheat_sheets[name] = html
+      callback()
+    end
   end)
 end
 
@@ -339,12 +347,18 @@ function m.toggle(name)
     hideCheatsheet()
   else
     name = name or findNameFromContext()
-    if shouldUpdate(name) then
-      loadCheatsheet(name, function()
-        showCheatsheet(name)
-      end)
+    if name == nil then
+      m.log.e('No cheatsheets found! Please check that:\n',
+      'the directory exists:', m.cfg.path.dir, '\n',
+      'the default file exists:', toPath(m.cfg.defaultName))
     else
-      showCheatsheet(name)
+      if shouldUpdate(name) then
+        loadCheatsheet(name, function()
+          showCheatsheet(name)
+        end)
+      else
+        showCheatsheet(name)
+      end
     end
   end
 end
