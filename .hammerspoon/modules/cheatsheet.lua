@@ -122,16 +122,19 @@ local function allNamesFromContext()
   local id = app:bundleID()
   names[id] = 2
 
-  local window, pane, cmd = parseTitle(app:mainWindow():title())
-  -- if any of these are nil, it doesn't matter. the names table will have
-  -- unique keys, and the weights will still sort correctly even with gaps.
-  names[toID(id, window)] = 3
-  names[toID(id, pane)] = 4
-  names[toID(id, cmd)] = 5
-  names[toID(id, window, pane)] = 6
-  names[toID(id, window, cmd)] = 7
-  names[toID(id, pane, cmd)] = 8
-  names[toID(id, window, pane, cmd)] = 9
+  local mainWindow = app:mainWindow()
+  if mainWindow ~= nil then
+    local window, pane, cmd = parseTitle(mainWindow:title())
+    -- if any of these are nil, it doesn't matter. the names table will have
+    -- unique keys, and the weights will still sort correctly even with gaps.
+    names[toID(id, window)] = 3
+    names[toID(id, pane)] = 4
+    names[toID(id, cmd)] = 5
+    names[toID(id, window, pane)] = 6
+    names[toID(id, window, cmd)] = 7
+    names[toID(id, pane, cmd)] = 8
+    names[toID(id, window, pane, cmd)] = 9
+  end
 
   -- m.log.d('names', hs.inspect(names))
   return names
