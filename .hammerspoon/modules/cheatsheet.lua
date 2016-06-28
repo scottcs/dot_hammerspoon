@@ -1,10 +1,14 @@
--- module: Cheatsheet - show text file popup overlays on-demand
--- (Inspired by the CheatSheet app by Stefan Fürst)
+-- module: Cheatsheet - show markdown file popup overlays on-demand
+-- (Inspired by the CheatSheet app by Stefan Fürst, but rather than
+-- automatically showing an app's hotkeys, this renders custom markdown files
+-- based on the current app.)
 --
--- Cheatsheets live in the config.cheatsheet.path directory.
+-- Cheatsheets live in the config.cheatsheet.path.dir directory.
 -- For cheatsheets to be determined by application context, cheatsheet
 -- filenames must match the application bundle ID (e.g.
--- org.hammerspoon.Hammerspoon.md for Hammerspoon).
+-- org.hammerspoon.Hammerspoon.md for Hammerspoon). This can be further narroed
+-- down by window title (or even tmux window/pane/command if configured
+-- correctly. See below for tmux settings.)
 --
 local m = {}
 
