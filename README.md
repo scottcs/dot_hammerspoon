@@ -29,6 +29,8 @@ Inspired by Stefan Fürst's CheatSheet app, but taken in a different direction. 
 
 Note: The webview overlay is split into 2 columns, and the markdown file will fill both columns as it grows in length (left first, then right).
 
+See [`cheatsheets/`](cheatsheets) for examples.
+
 Requires [pandoc](http://pandoc.org/) but would be pretty easy to modify to work with a different markdown-to-html converter, like discount.
 
 ### [hazel](.hammerspoon/modules/hazel.lua)
