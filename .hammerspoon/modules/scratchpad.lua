@@ -98,7 +98,11 @@ local function menuClickCallback(mods)
         -- if a line is clicked, open the scratchpad for editing
         -- if a line is ctrl-clicked, remove that line from the scratchpad file
         local function menuItemClickCallback(itemmods)
-          if itemmods.ctrl then removeLine(line) else m.edit() end
+          if itemmods.ctrl then
+            removeLine(line)
+          else
+            hs.pasteboard.setContents(line)
+          end
         end
         list[#list+1] = {title=tostring(line), fn=menuItemClickCallback}
       end

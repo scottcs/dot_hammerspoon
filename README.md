@@ -41,7 +41,7 @@ Inspired by Notational Velocity. Bring up a chooser via keybinding that lists ma
 
 ### [scratchpad](.hammerspoon/modules/scratchpad.lua)
 
-Scratchpad for jotting down random notes or reminders. I use this for short-lived notes throughout the day. I usually don't have more than 5-10 lines in it at a time. A keybinding brings up a chooser where you can enter a single line, which is appended to the scratchpad file. The contents of the file can be seen by clicking the menubar icon. Clicking on a line in the menu will open the scratchpad file in an editor. Ctrl-clicking on a line in the menubar will remove it from the file.
+Scratchpad for jotting down random notes or reminders. I use this for short-lived notes throughout the day. I usually don't have more than 5-10 lines in it at a time. A keybinding brings up a chooser where you can enter a single line, which is appended to the scratchpad file. The contents of the file can be seen by clicking the menubar icon. Clicking on a line in the menu will copy the line to the clipboard. Ctrl-clicking on a line in the menubar will remove it from the file.
 
 ### [songs](.hammerspoon/modules/songs.lua)
 
