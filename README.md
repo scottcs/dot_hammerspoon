@@ -29,6 +29,8 @@ Inspired by Stefan Fürst's CheatSheet app, but taken in a different direction. 
 
 Note: The webview overlay is split into 2 columns, and the markdown file will fill both columns as it grows in length (left first, then right).
 
+Requires [pandoc](http://pandoc.org/) but would be pretty easy to modify to work with a different markdown-to-html converter, like discount.
+
 ### [hazel](.hammerspoon/modules/hazel.lua)
 
 Filesystem watcher module, which is probably useless to anyone but me. I replaced my old Hazel rules with this module (and no longer use Hazel). You'd probably want to modify it heavily if you use it at all.
