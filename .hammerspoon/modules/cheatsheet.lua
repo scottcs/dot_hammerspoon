@@ -271,6 +271,7 @@ local function createView(html, title)
     masks.nonactivating
   )
   view:windowTitle(title)
+  view:setLevel(hs.drawing.windowLevels.overlay)
   view:html(html)
 end
 
