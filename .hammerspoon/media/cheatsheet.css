@@ -55,6 +55,7 @@ html, body {
   color: #bbb;
   font-family: Verdana, sans-serif;
   font-size: 16px;
+  line-height: 1.5em;
 }
 
 body {
@@ -182,6 +183,7 @@ pre, code {
   /* This will override the overflow:auto if present */
   white-space: pre-wrap; /* css-3 */
   font-family: "Fira Mono", "Source Code Pro", "Menlo", monospace;
+  line-height: 1.3em;
 }
 
 /* Code blocks */
