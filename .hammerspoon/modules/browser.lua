@@ -36,6 +36,9 @@ local function watch(_, eventType, appObject)
 end
 
 function m.start()
+  -- set Hammerspoon as the default system URL handler for http and https (both
+  -- are set even if only one is specified)
+  hs.urlevent.setDefaultHandler('http')
   m.watcher = hs.application.watcher.new(watch)
   m.watcher:start()
   hs.urlevent.httpCallback = httpCallback

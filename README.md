@@ -17,7 +17,7 @@ Battery status notifications.
 
 ### [browser](.hammerspoon/modules/browser.lua)
 
-Send URL clicks to the most recently focused browser. (Requires that Hammerspoon is set to be the default URL handler in OS X System Settings.)
+Send URL clicks to the most recently focused browser. (Will attempt to set Hammerspoon as the default URL handler when started, if it's not already.)
 
 ### [caffeine](.hammerspoon/modules/caffeine.lua)
 
