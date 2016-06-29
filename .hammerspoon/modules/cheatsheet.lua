@@ -51,42 +51,53 @@ end
 -- Get current window name, tmux pane name (if applicable), and shell command
 -- (if applicable) by parsing the window title.
 --
+-- I've got my shell set up to change the window title to the currently running
+-- command.
+--
 -- For iTerm/tmux, I currently set this using tmux's set-titles-string
--- configuration set to '|#S|#W|#T' which results in something like:
--- '1. |session|window|hostname: command arg arg arg'
+-- configuration set to:
+--    set -g set-titles on
+--    set -g set-titles-string '#S|#W|#T'
+--
+-- This results in a title string that looks something like this for most
+-- commands:
+--    'session|window|command arg arg arg'
+-- (Note that commands with pipes could also potentially be parsed here.)
+--
+-- For web browser tabs, I'm also parsing the command string by spaces.
+--
+-- Further, in my vimrc, I use titlestring to provide even more info such as
+-- filename and filetype of the currently focused file:
+--    set title
+--    set titlestring=nvim\|%Y\|%t\|%{expand(\"%:p:h\")}
+--
+-- So within a tmux pane that's running neovim and editing this file, I end up
+-- with a window title that looks like:
+--    'session|window|nvim|LUA|cheatsheet.lua|/full/path/to/parent/dir'
+--
+-- Note: using iTerm, I disabled all "Window & Tab Titles" options under
+-- Appearance in the preferences.
+--
 local function parseTitle(title)
-  local window = nil
-  local pane = nil
-  local cmd = nil
-
+  local parts = {}
   local titles = ustr.split(title, '|')
-  if #titles >= 4 then
-    window = titles[2]
-    pane = titles[3]
-    local cmds = ustr.split(titles[4], ':')
-    if #cmds >= 2 then
-      local words = ustr.split(ustr.trim(cmds[2]), '%s')
-      if words ~= nil then cmd = words[1] end
-    end
-  else
-    -- kind of a hack for non-terminal window titles.
-    -- for example, split on ' ' for web pages named
-    -- 'Hammerspoon docs: hs.chooser'
-    local toSplit = #titles > 1 and titles[1] or title
-    -- m.log.d('toSplit', toSplit)
-    local parts = ustr.split(toSplit, '[ /]')
-    if parts[1] then
-      window = hs.http.encodeForQuery(parts[1]:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
-    end
-    if parts[2] then
-      pane = hs.http.encodeForQuery(parts[2]:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
-    end
-    if parts[3] then
-      cmd = hs.http.encodeForQuery(parts[3]:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
+  -- m.log.d('titles', hs.inspect(titles))
+
+  for i,t in ipairs(titles) do
+    local subtitles = ustr.split(t, '[ /:]')
+    for _,subt in ipairs(subtitles) do
+      if #parts < m.cfg.maxParts then
+        subt = ustr.trim(subt)
+        subt = hs.http.encodeForQuery(subt:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
+        if subt and subt ~= '' then
+          parts[#parts+1] = string.lower(subt)
+        end
+      end
     end
   end
-  -- m.log.d(window, pane, cmd)
-  return window, pane, cmd
+
+  -- m.log.d('parts', hs.inspect(parts))
+  return parts
 end
 
 -- convert a cheatsheet name to a full path string
@@ -126,18 +137,33 @@ local function allNamesFromContext()
   local id = app:bundleID()
   names[id] = 2
 
+  -- TODO: make this better. I'm not happy with it. It works ok for my
+  -- particular tmux/nvim setup, but it's weird for browsers, for instance.
+  -- Would be nice to just have the browser location url or something.
   local mainWindow = app:mainWindow()
   if mainWindow ~= nil then
-    local window, pane, cmd = parseTitle(mainWindow:title())
-    -- if any of these are nil, it doesn't matter. the names table will have
-    -- unique keys, and the weights will still sort correctly even with gaps.
-    names[toID(id, window)] = 3
-    names[toID(id, pane)] = 4
-    names[toID(id, cmd)] = 5
-    names[toID(id, window, pane)] = 6
-    names[toID(id, window, cmd)] = 7
-    names[toID(id, pane, cmd)] = 8
-    names[toID(id, window, pane, cmd)] = 9
+    local parts = parseTitle(mainWindow:title())
+    local weight = 3
+    for i,part in ipairs(parts) do
+      names[toID(id, part)] = weight
+      weight = weight + 1
+    end
+    if #parts > 1 then
+      local tmpID = toID(id, parts[1])
+      for i=2,#parts,1 do
+        tmpID = toID(tmpID, parts[i])
+        names[tmpID] = weight
+        weight = weight + 1
+      end
+    end
+    if #parts > 3 then
+      local tmpID = toID(id, parts[3])
+      for i=4,#parts,1 do
+        tmpID = toID(tmpID, parts[i])
+        names[tmpID] = weight
+        weight = weight + 1
+      end
+    end
   end
 
   -- m.log.d('names', hs.inspect(names))

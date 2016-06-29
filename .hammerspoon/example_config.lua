@@ -76,6 +76,7 @@ cfg.caffeine = {
 cfg.cheatsheet = {
   defaultName = 'default',
   chooserWidth = 50,
+  maxParts = 5,
   path = {
     dir    = ufile.toPath(cfg.global.paths.cloud, 'cheatsheets'),
     css    = ufile.toPath(cfg.global.paths.media, 'cheatsheet.min.css'),
