@@ -415,9 +415,11 @@ end
 function m.stop()
   if chooser then chooser:delete() end
   hideCheatsheet()
-  for name,_ in pairs(cheat_sheets) do
-    cheat_sheets[name] = nil
-    last_changed[name] = nil
+  if (cheat_sheets and type(cheat_sheets) == "table") then
+    for name,_ in pairs(cheat_sheets) do
+      cheat_sheets[name] = nil
+      last_changed[name] = nil
+    end
   end
   cheat_sheets = nil
   last_changed = nil
