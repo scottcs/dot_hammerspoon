@@ -1,5 +1,5 @@
 
-# My Hammerspoon configuration
+# My [Hammerspoon](http://www.hammerspoon.org) configuration
 
 [`init.lua`](.hammerspoon/init.lua) loads and configures each module. [`bindings.lua`](.hammerspoon/bindings.lua) defines all of the keybindings. There are a number of utility functions defined in [`utils/`](.hammerspoon/utils), and all of the modules live in [`modules/`](.hammerspoon/modules).
 
