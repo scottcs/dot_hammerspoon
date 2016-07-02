@@ -137,10 +137,23 @@ local function trackCallback(exitCode, stdOut, stdErr)
   hs.alert.show(string.gsub(stdOut, '%s+', ' '), 3)
 end
 
--- rate a song using the track binary
+-- rate a song using the track binary if available, otherwise use hs.osascript
 local function rateSong(rating)
   if m.cfg.trackBinary == nil then
-    m.log.w('trackBinary not configured')
+    local api = m.getApi()
+    if api ~= nil then
+      state = api.scxGetPlaybackState()
+      if state == ustr.unquote(api.state_playing) then
+	if api == hs.itunes then
+	  hs.osascript.applescript(
+	    'tell application "iTunes"\n set rating of current track to ' .. tostring(rating * 20) .. '\nend tell')
+	elseif api == hs.spotify then
+	  m.log.w('No rating for spotify tracks')
+	else
+	  m.log.w('Unsupported API!')
+	end
+      end
+    end
     return
   end
 
