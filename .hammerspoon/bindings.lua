@@ -58,6 +58,11 @@ function bindings.bind()
     end
   end
 
+  local function maximizeFrontmost()
+    local win = hs.application.frontmostApplication():focusedWindow()
+    if not win:isFullScreen() then win:maximize() end
+  end
+
   -- module key bindings
   -- (all using shift-hyper)
   hs.fnutils.each({
@@ -81,6 +86,7 @@ function bindings.bind()
     {key = 'v',  fn = uapp.forcePaste},
     {key = 'x',  fn = hsm.cheatsheet.chooserToggle},
     {key = 'y',  fn = toggleConsole},
+    {key = 'z',  fn = maximizeFrontmost},
   }, function(object)
     hs.hotkey.bind(mod.shyper, object.key, object.fn)
   end)
