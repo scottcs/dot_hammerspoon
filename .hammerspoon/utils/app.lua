@@ -7,7 +7,9 @@ local ustr = require('utils.string')
 function lib.tell(app, appCmd)
   local cmd = 'tell application "'..app..'" to '..appCmd
   local ok, result = hs.applescript(cmd)
-  if ok then return result else return nil end
+  if ok and result == nil then result = true end
+  if not ok then result = nil end
+  return result
 end
 
 -- get iTunes player status

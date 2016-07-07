@@ -112,6 +112,15 @@ local function getInfo(api)
   return artist, track, album, state
 end
 
+-- make a nicely formated string of song info
+local function formatInfo(artist, track, album, rating)
+  local msg = track .. '\n' .. artist .. '\n' .. '(' .. album .. ')'
+  if rating and rating > 0 then
+    msg = msg .. '\n' .. (string.rep('*', rating))
+  end
+  return msg
+end
+
 -- get info on the currently playing song and display in an alert
 function m.getInfo()
   local api = m.getApi()
@@ -120,7 +129,7 @@ function m.getInfo()
   if api then
     local artist, track, album, state = getInfo(api)
     if state == ustr.unquote(api.state_playing) then
-      msg = track .. '\n' .. artist .. '\n(' .. album .. ')'
+      msg = formatInfo(artist, track, album)
     end
   end
   hs.alert.show(msg, 3)
@@ -137,35 +146,42 @@ local function trackCallback(exitCode, stdOut, stdErr)
   hs.alert.show(string.gsub(stdOut, '%s+', ' '), 3)
 end
 
--- rate a song using the track binary if available, otherwise use hs.osascript
-local function rateSong(rating)
-  if m.cfg.trackBinary == nil then
-    local api = m.getApi()
-    if api ~= nil then
-      state = api.scxGetPlaybackState()
-      if state == ustr.unquote(api.state_playing) then
-	if api == hs.itunes then
-	  hs.osascript.applescript(
-	    'tell application "iTunes"\n set rating of current track to ' .. tostring(rating * 20) .. '\nend tell')
-	elseif api == hs.spotify then
-	  m.log.w('No rating for spotify tracks')
-	else
-	  m.log.w('Unsupported API!')
-	end
+-- rate a song in iTunes using hs.osascript
+local function rateiTunesSong(rating)
+  local api = m.getApi()
+  if api == hs.itunes then
+    local state = api.scxGetPlaybackState()
+    if state == ustr.unquote(api.state_playing) then
+      local cmd = 'set rating of current track to '..tostring(rating * 20)
+      local result = uapp.tell('iTunes', cmd)
+      if result == nil then
+        m.log.e('could not set iTunes rating')
+      else
+        local artist, track, album, _ = getInfo(api)
+        local msg = formatInfo(artist, track, album, rating)
+        hs.alert.show(msg, 3)
       end
     end
-    return
   end
+end
 
+-- rate a song using the track binary if available,
+-- otherwise rate directly in iTunes
+local function rateSong(rating)
   if uapp.getiTunesPlayerState() == nil
     and uapp.getSpotifyPlayerState() == nil then return end
 
-  local task = hs.task.new(m.cfg.trackBinary, trackCallback, {'-r', ''..rating})
-  local env = task:environment()
-  env['PATH'] = '/usr/local/bin:' .. env['PATH']
-  task:setEnvironment(env)
-  if not task:start() then
-    m.log.e('could not start task for trackBinary "'..m.cfg.trackBinary..'"')
+  if m.cfg.trackBinary == nil then
+    rateiTunesSong(rating)
+  else
+    local task = hs.task.new(m.cfg.trackBinary, trackCallback, {'-r', ''..rating})
+    local env = task:environment()
+    env['PATH'] = '/usr/local/bin:' .. env['PATH']
+    env['TRACK_DB'] = m.cfg.trackDB
+    task:setEnvironment(env)
+    if not task:start() then
+      m.log.e('could not start task for trackBinary "'..m.cfg.trackBinary..'"')
+    end
   end
 end
 

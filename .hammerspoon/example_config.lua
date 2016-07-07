@@ -132,7 +132,10 @@ cfg.scratchpad = {
 cfg.songs = {
   -- set this to the path of the track binary if you're using it
   -- trackBinary = ufile.toPath(cfg.global.paths.bin, 'track'),
-  trackBinary = nil
+  trackBinary = nil,
+  -- set this to the path of the track database file if not default
+  -- trackDB = ufile.toPath(cfg.global.paths.cloud, 'track.db'),
+  trackDB = nil,
 }
 
 -------------
