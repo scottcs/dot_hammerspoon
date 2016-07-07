@@ -59,4 +59,39 @@ function lib.forcePaste()
   hs.eventtap.keyStrokes(hs.pasteboard.getContents())
 end
 
+-- get the current URL of the focused browser window
+function lib.getFocusedBrowserURL()
+  local url = nil
+  local browsers = {
+    ['Google Chrome'] = 'URL of active tab of front window',
+    Safari = 'URL of front document',
+    Firefox = function()
+      local ff_dir = os.getenv('HOME')..'/Library/Application Support/Firefox'
+      local prof_dir = ff_dir..'/Profiles'
+      -- TODO:
+      -- get most recent Profiles/*/sessionstore-backups/recovery.js
+      -- load and parse as json
+      -- find selectedWindow
+      -- get window data from data['windows'][selectedWindow]
+      -- get selected tab (windowdata['selected'])
+      -- get tab data (windowdata['tabs'][selectedTab])
+      -- get last entry of tab (tabdata['entries'][numEntries])
+      -- return the url (entry['url'])
+      return nil
+    end,
+  }
+
+  local app = hs.application.frontmostApplication()
+  local title = app:title()
+  if browsers[title] ~= nil then
+    if type(browsers[title]) == 'string' then
+      url = lib.tell(title, browsers[title])
+    elseif type(browsers[title] == 'function') then
+      url = browsers[title]()
+    end
+  end
+
+  return url
+end
+
 return lib
