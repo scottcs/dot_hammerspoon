@@ -155,26 +155,34 @@ local function allNamesFromContext()
       parts = parseTitle(mainWindow:title())
     end
 
+    local name = id
     local weight = 3
+    local terminals = {
+      ['com.apple.Terminal'] = true,
+      ['com.googlecode.iterm2'] = true,
+    }
+
+    -- special handling of terminals;
+    --     tmux_session|tmux_pane|command|sub1|sub2|sub3|...
+    --   We want:
+    --     tmux_session
+    --     tmux_session.tmux_pane
+    --     command
+    --     command.sub1
+    --     command.sub1.sub2
+    --     command.sub1.sub2.sub3
+    --     etc
+    -- for everything else, we just want a hierarchy progression:
+    --     part1
+    --     part1.part2
+    --     part1.part2.part3
+    --     etc
     for i,part in ipairs(parts) do
-      names[toID(id, part)] = weight
+      -- if a terminal then reset to id when we get to command (parts[3])
+      if i == 3 and terminals[id] then name = id end
+      name = toID(name, part)
+      names[name] = weight
       weight = weight + 1
-    end
-    if #parts > 1 then
-      local tmpID = toID(id, parts[1])
-      for i=2,#parts,1 do
-        tmpID = toID(tmpID, parts[i])
-        names[tmpID] = weight
-        weight = weight + 1
-      end
-    end
-    if #parts > 3 then
-      local tmpID = toID(id, parts[3])
-      for i=4,#parts,1 do
-        tmpID = toID(tmpID, parts[i])
-        names[tmpID] = weight
-        weight = weight + 1
-      end
     end
   end
 
