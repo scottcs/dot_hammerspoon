@@ -2,6 +2,7 @@
 local lib = {}
 
 local ustr = require('utils.string')
+local ufile = require('utils.file')
 
 -- osascript to tell an application to do something
 function lib.tell(app, appCmd)
@@ -61,25 +62,40 @@ end
 
 -- get the current URL of the focused browser window
 function lib.getFocusedBrowserURL()
-  local url = nil
+  -- values for this table are either applescript strings to pass to
+  -- lib.tell(), or functions to be called. In either case, the return
+  -- value should be the URL of the frontmost window/tab.
   local browsers = {
     ['Google Chrome'] = 'URL of active tab of front window',
     Safari = 'URL of front document',
     Firefox = function()
-      local ff_dir = os.getenv('HOME')..'/Library/Application Support/Firefox'
-      local prof_dir = ff_dir..'/Profiles'
-      -- TODO:
-      -- get most recent Profiles/*/sessionstore-backups/recovery.js
-      -- load and parse as json
-      -- find selectedWindow
-      -- get window data from data['windows'][selectedWindow]
-      -- get selected tab (windowdata['selected'])
-      -- get tab data (windowdata['tabs'][selectedTab])
-      -- get last entry of tab (tabdata['entries'][numEntries])
-      -- return the url (entry['url'])
-      return nil
+      -- NOTE: Unfortunately, Firefox isn't scriptable with AppleScript.
+      -- Also unfortunately, it seems like the only way to get the current URL
+      -- is to either send keystrokes to the app to copy the location bar to
+      -- the clipboard (which messes with keybindings as well as overwriting
+      -- the clipboard), or to read from a recovery.js file. I'm choosing to go
+      -- with the latter, here, but the recovery.js file is only written every
+      -- 20 minutes or so, which might mean it's useless.
+      local ffDir = ufile.toPath(os.getenv('HOME'), 'Library/Application Support/Firefox/Profiles')
+      local recoveryFile = ufile.toPath(
+        ufile.mostRecent(ffDir, 'modification'),
+        'sessionstore-backups',
+        'recovery.js'
+      )
+      if not ufile.exists(recoveryFile) then return nil end
+
+      local json = ufile.loadJSON(recoveryFile)
+      if not json then return nil end
+
+      -- keeping this somewhat brittle for now because if the format of the
+      -- file changes, I want to know about it by seeing errors.
+      local windowData = json.windows[json.selectedWindow]
+      local tabData = windowData.tabs[windowData.selected]
+      local lastEntry = tabData.entries[#tabData.entries]
+      return lastEntry.url
     end,
   }
+  local url = nil
 
   local app = hs.application.frontmostApplication()
   local title = app:title()

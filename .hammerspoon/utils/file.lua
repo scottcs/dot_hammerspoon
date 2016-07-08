@@ -155,10 +155,42 @@ function lib.loadJSON(file)
     f:close()
     if content then
       ok, data = pcall(function() return hs.json.decode(content) end)
-      if not ok then data = nil end
+      if not ok then
+        hsm.log.e('loadJSON:', data)
+        data = nil
+      end
     end
   end
   return data
+end
+
+-- Find the most recent path in a directory
+-- attr should be one of: access, change, modification, creation
+function lib.mostRecent(parent, attr)
+  if not lib.exists(parent) then return nil end
+
+  -- make sure attr is valid and default to modification
+  local attrs = {access=true, change=true, modification=true, creation=true}
+  if not attrs[attr] then attr = 'modification' end
+
+  local max = 0
+  local mostRecent = nil
+  local iterFn, dirObj = hs.fs.dir(parent)
+  local child = iterFn(dirObj)
+  while child do
+    -- ignore dotfiles
+    if string.find(child, '^[^%.]') then
+      local path = lib.toPath(parent, child)
+      local last = hs.fs.attributes(path, attr)
+      if last > max then
+        mostRecent = path
+        max = last
+      end
+    end
+    child = iterFn(dirObj)
+  end
+
+  return mostRecent
 end
 
 return lib
