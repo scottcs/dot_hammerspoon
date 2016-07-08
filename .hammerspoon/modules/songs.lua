@@ -47,7 +47,7 @@ function m.getApi()
     elseif itunesState ~= nil then
       setLastPlayer(K.ITUNES)
     else
-      print('No players for songs.')
+      m.log.i('No players for songs.')
     end
   end
   return lastApi

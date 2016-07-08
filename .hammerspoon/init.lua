@@ -24,15 +24,15 @@ hsm = {}
 local cfg = require('config')
 hsm.cfg = cfg.global
 
--- log for init.lua only
-local log = hs.logger.new(hs.host.localizedName(), LOGLEVEL)
+-- global log
+hsm.log = hs.logger.new(hs.host.localizedName(), LOGLEVEL)
 
 -- load a module from modules/ dir, and set up a logger for it
 local function loadModuleByName(modName)
   hsm[modName] = require('modules.' .. modName)
   hsm[modName].name = modName
   hsm[modName].log = hs.logger.new(modName, LOGLEVEL)
-  log.i(hsm[modName].name .. ': module loaded')
+  hsm.log.i(hsm[modName].name .. ': module loaded')
 end
 
 -- save the configuration of a module in the module object
@@ -40,7 +40,7 @@ local function configModule(mod)
   mod.cfg = mod.cfg or {}
   if (cfg[mod.name]) then
     for k,v in pairs(cfg[mod.name]) do mod.cfg[k] = v end
-    log.i(mod.name .. ': module configured')
+    hsm.log.i(mod.name .. ': module configured')
   end
 end
 
@@ -48,14 +48,14 @@ end
 local function startModule(mod)
   if mod.start == nil then return end
   mod.start()
-  log.i(mod.name .. ': module started')
+  hsm.log.i(mod.name .. ': module started')
 end
 
 -- stop a module
 local function stopModule(mod)
   if mod.stop == nil then return end
   mod.stop()
-  log.i(mod.name .. ': module stopped')
+  hsm.log.i(mod.name .. ': module stopped')
 end
 
 -- load, configure, and start each module
