@@ -87,11 +87,6 @@ function bindings.bind()
     {key = 'x',  fn = hsm.cheatsheet.chooserToggle},
     {key = 'y',  fn = toggleConsole},
     {key = 'z',  fn = maximizeFrontmost},
-    {key = '=',  fn = function()
-      local log = hs.logger.new('test', 'debug')
-      local uapp = require('utils.app')
-      log.d('url', uapp.getFocusedBrowserURL())
-    end},
   }, function(object)
     hs.hotkey.bind(mod.shyper, object.key, object.fn)
   end)
