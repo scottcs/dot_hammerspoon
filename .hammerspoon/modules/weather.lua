@@ -334,19 +334,10 @@ local function onDataChanged(files)
     return
   end
 
-  local data = {}
-  local f = io.open(files[1], 'r')
-  if f then
-    local content = f:read('*all')
-    f:close()
-    if content then
-      ok, data = pcall(function() return hs.json.decode(content) end)
-      if not ok then
-        m.log.e('could not decode json, perhaps bad api key?')
-        m.log.e(data)
-        data = {}
-      end
-    end
+  local data = ufile.loadJSON(files[1])
+  if not data then
+    m.log.e('could not decode json, perhaps bad api key?')
+    data = {}
   end
   updateMenu(data)
 end

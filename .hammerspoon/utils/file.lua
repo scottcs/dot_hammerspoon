@@ -146,4 +146,19 @@ function lib.withExtension(filePath, ext)
   return path
 end
 
+-- load a json file into a lua table and return it
+function lib.loadJSON(file)
+  local data = nil
+  local f = io.open(file, 'r')
+  if f then
+    local content = f:read('*all')
+    f:close()
+    if content then
+      ok, data = pcall(function() return hs.json.decode(content) end)
+      if not ok then data = nil end
+    end
+  end
+  return data
+end
+
 return lib
