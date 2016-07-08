@@ -14,6 +14,7 @@ local m = {}
 
 local ustr  = require('utils.string')
 local ufile = require('utils.file')
+local uapp = require('utils.app')
 
 local lastApp = nil
 local chooser = nil
@@ -63,8 +64,6 @@ end
 -- commands:
 --    'session|window|command arg arg arg'
 -- (Note that commands with pipes could also potentially be parsed here.)
---
--- For web browser tabs, I'm also parsing the command string by spaces.
 --
 -- Further, in my vimrc, I use titlestring to provide even more info such as
 -- filename and filetype of the currently focused file:
@@ -138,11 +137,24 @@ local function allNamesFromContext()
   names[id] = 2
 
   -- TODO: make this better. I'm not happy with it. It works ok for my
-  -- particular tmux/nvim setup, but it's weird for browsers, for instance.
-  -- Would be nice to just have the browser location url or something.
+  -- particular tmux/nvim setup.
   local mainWindow = app:mainWindow()
   if mainWindow ~= nil then
-    local parts = parseTitle(mainWindow:title())
+    local url = uapp.getFocusedBrowserURL()
+    local parts = {}
+
+    if url ~= nil then
+      local urlParts = ustr.split(url, '/')
+      -- skip 1 and 2, which are the protocol and empty string due to the split
+      local title = urlParts[3]
+      for i=4,#urlParts,1 do
+        title = title..'|'..urlParts[i]
+      end
+      parts = parseTitle(title)
+    else
+      parts = parseTitle(mainWindow:title())
+    end
+
     local weight = 3
     for i,part in ipairs(parts) do
       names[toID(id, part)] = weight
