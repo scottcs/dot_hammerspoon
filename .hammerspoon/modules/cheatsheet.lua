@@ -330,7 +330,6 @@ local function getMenuItems(items)
     if type(item) == 'table' then
       if item.AXRole == AX.MENUBARITEM and item.AXChildren then
         local childLines = getMenuItems(item.AXChildren[1])
-        m.log.d('childLines', #childLines)
         if #childLines > 0 then
           lines[#lines+1] = ''
           lines[#lines+1] = '| '..item.AXTitle..' | |'
