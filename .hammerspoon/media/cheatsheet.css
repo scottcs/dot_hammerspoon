@@ -259,13 +259,16 @@ table {
   border-collapse: collapse;
   border-spacing: 0; /* IE 6 */
 
-  border-bottom: 2pt solid #fff;
   /* The caption on top will not have a bottom-border */
   border-top: 2pt solid #fff;
 
   /* Center */
   margin-left: auto;
   margin-right: auto;
+
+  margin-bottom: 1.2em;
+
+  width: 90%;
 }
 
 /* Entire table header */

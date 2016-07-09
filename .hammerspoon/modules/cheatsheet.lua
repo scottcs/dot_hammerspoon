@@ -29,6 +29,30 @@ local css = nil
 local FILE  = 'file://'
 local HTTP  = 'http://'
 local HTTPS = 'https://'
+local FROMMENU = 'Create New From Menu Items'
+local AX = {
+  MENUBARITEM = 'AXMenuBarItem',
+  MENUITEM = 'AXMenuItem',
+}
+
+local commandEnum = {
+  [0] = '⌘',
+        '⇧⌘',
+        '⌥⌘',
+        '⌥⇧⌘',
+        '⌃⌘',
+        '⌃⇧⌘',
+        '⌃⌥⌘',
+        '⌃⌥⇧⌘',
+        '⌦',
+        '⇧',
+        '⌥',
+        '⌥⇧',
+        '⌃',
+        '⌃⇧',
+        '⌃⌥',
+        '⌃⌥⇧',
+}
 
 -- refocus on the app that was focused before the chooser was invoked
 local function refocus()
@@ -299,6 +323,40 @@ local function createView(html, title)
   view:html(html)
 end
 
+local function getMenuItems(items)
+  local lines = {}
+
+  for _,item in ipairs(items) do
+    if type(item) == 'table' then
+      if item.AXRole == AX.MENUBARITEM and item.AXChildren then
+        local childLines = getMenuItems(item.AXChildren[1])
+        m.log.d('childLines', #childLines)
+        if #childLines > 0 then
+          lines[#lines+1] = ''
+          lines[#lines+1] = '| '..item.AXTitle..' | |'
+          lines[#lines+1] = '| ---: | --- |'
+          for i=1,#childLines do lines[#lines+1] = childLines[i] end
+          lines[#lines+1] = ''
+        end
+      elseif item.AXRole == AX.MENUITEM and item.AXMenuItemCmdChar ~= '' then
+        local commandGlyph = commandEnum[item.AXMenuItemCmdModifiers] or ''
+        lines[#lines+1] = commandGlyph..' '..item.AXMenuItemCmdChar..' | '..item.AXTitle
+      end
+    end
+  end
+
+  return lines
+end
+
+local function getShortcutMenuItems(bundleID)
+  local lines = {}
+  local apps = hs.application.applicationsForBundleID(bundleID)
+  if apps and #apps > 0 then
+    lines = getMenuItems(apps[1]:getMenuItems())
+  end
+  return lines
+end
+
 -- load the html for a cheatsheet, then call the callback
 local function loadCheatsheet(name, callback)
   -- m.log.d('loading cheatsheet', name)
@@ -349,6 +407,21 @@ local function editCheatsheet(name)
   hs.task.new('/usr/bin/open', nil, {'-t', file}):start()
 end
 
+-- create a new cheatsheet, filling its contents with menu items
+local function createCheatsheetFromMenu(name)
+  if not name then return end
+  local file = toPath(name)
+  if not ufile.exists(file) then
+    if ufile.makeParentDir(file) then
+      local f = io.open(file, 'w')
+      for _,line in ipairs(getShortcutMenuItems(name)) do
+        f:write(tostring(line) .. '\n')
+      end
+      f:close()
+    end
+  end
+end
+
 -- show the chooser
 local function showChooser()
   if chooser ~= nil then
@@ -366,11 +439,23 @@ local function showChooser()
         exists = exists,
         weight = weight,
       }
+      -- extra entry for bundleID only, to generate default sheet
+      if not exists and weight == 2 then
+        choices[#choices+1] = {
+          text = name,
+          subText = FROMMENU,
+          exists = exists,
+          weight = weight,
+        }
+      end
     end
 
     -- sort by existing, then by weight
     table.sort(choices, function(a, b)
       if a.exists == b.exists then
+        if a.weight == b.weight then
+          return a.subText < b.subText
+        end
         return a.weight > b.weight
       end
       return a.exists and not b.exists
@@ -395,7 +480,13 @@ end
 local function choiceCallback(choice)
   refocus()
   chooserVisible = false
-  if choice ~= nil then editCheatsheet(choice.text) end
+  if choice ~= nil then
+    if choice.subText == FROMMENU then
+      createCheatsheetFromMenu(choice.text)
+    else
+      editCheatsheet(choice.text)
+    end
+  end
 end
 
 -- show/hide the named sheet (if name is given), else the sheet determined from
