@@ -85,12 +85,10 @@ local function parseTitle(title)
   for i,t in ipairs(titles) do
     local subtitles = ustr.split(t, '[ /:]')
     for _,subt in ipairs(subtitles) do
-      if #parts < m.cfg.maxParts then
-        subt = ustr.trim(subt)
-        subt = hs.http.encodeForQuery(subt:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
-        if subt and subt ~= '' then
-          parts[#parts+1] = string.lower(subt)
-        end
+      subt = ustr.trim(subt)
+      subt = hs.http.encodeForQuery(subt:gsub('[:%%%.%?/%[%]%(%)%+%$]', '_'))
+      if subt and subt ~= '' then
+        parts[#parts+1] = string.lower(subt)
       end
     end
   end
@@ -141,20 +139,18 @@ local function allNamesFromContext()
   local mainWindow = app:mainWindow()
   if mainWindow ~= nil then
     local url = uapp.getFocusedBrowserURL()
-    local parts = {}
+    local title = mainWindow:title()
 
     if url ~= nil then
       local urlParts = ustr.split(url, '/')
       -- skip 1 and 2, which are the protocol and empty string due to the split
-      local title = urlParts[3]
+      title = urlParts[3]
       for i=4,#urlParts,1 do
         title = title..'|'..urlParts[i]
       end
-      parts = parseTitle(title)
-    else
-      parts = parseTitle(mainWindow:title())
     end
 
+    local parts = parseTitle(title)
     local name = id
     local weight = 3
     local terminals = {
@@ -170,19 +166,27 @@ local function allNamesFromContext()
     --     command
     --     command.sub1
     --     command.sub1.sub2
-    --     command.sub1.sub2.sub3
     --     etc
     -- for everything else, we just want a hierarchy progression:
     --     part1
     --     part1.part2
     --     part1.part2.part3
     --     etc
+    local numParts = 1
     for i,part in ipairs(parts) do
       -- if a terminal then reset to id when we get to command (parts[3])
-      if i == 3 and terminals[id] then name = id end
+      if i == 3 and terminals[id] then
+        name = id
+        numParts = 1
+      end
+
+      -- don't add more than maxParts from config
+      if numParts > m.cfg.maxParts then break end
+
       name = toID(name, part)
       names[name] = weight
       weight = weight + 1
+      numParts = numParts + 1
     end
   end
 
