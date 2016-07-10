@@ -7,6 +7,13 @@ local isCharged   = hs.battery.isCharged()
 local percentage  = hs.battery.percentage()
 local powerSource = hs.battery.powerSource()
 
+local notifiedAt = {
+  [20] = false,
+  [15] = false,
+  [10] = false,
+  [5]  = false,
+}
+
 -- send a notification about the battery status
 local function batteryNotify(statusType, subTitle, message)
   hs.notify.new({
@@ -38,10 +45,18 @@ local function watchFunc()
     isCharged = true
   end
 
-  if newPercentage <= 20
-    and newPercentage % 5 == 0
-    and newPowerSource == 'Battery Power'
-  then
+  local shouldNotifyTime = false
+  for threshold, notified in pairs(notifiedAt) do
+    if newPercentage > threshold then
+      -- reset because we've gone above this threshold
+      notifiedAt[threshold] = false
+    elseif not notified then
+      -- newPercentage <= threshold so we should notify
+      notifiedAt[threshold] = true
+      shouldNotifyTime = true
+    end
+  end
+  if shouldNotifyTime then
     local timeRemaining = utime.prettyMinutes(hs.battery.timeRemaining())
     batteryNotify('Battery', 'Time Remaining:', timeRemaining)
   end
