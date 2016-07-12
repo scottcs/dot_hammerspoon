@@ -57,6 +57,7 @@ local menu = nil
 local timer = nil
 local counter = nil
 local chime = nil
+local idleTime = nil
 
 -----------------------------------------
 -- helpers
@@ -180,11 +181,11 @@ end
 
 -- callback called every K.TIMING.IDLE seconds to check for inactivity
 local function onIdle()
-  -- m.log.d('on idle', counter.idle.asString())
   if mode == K.MODE.AWARENESS then
-    counter.idle.incr()
+    local idleSeconds = os.time() - idleTime
+    -- m.log.d('idleSeconds', idleSeconds)
     -- if we've reached the inactivity threshold, reset to 0
-    if counter.idle.get() > K.TIMING.ACTIVITY_TIMEOUT then
+    if idleSeconds > K.TIMING.ACTIVITY_TIMEOUT then
       chimeCleanup()
       m.reset()
     end
@@ -209,8 +210,8 @@ end
 -- callback called from all anti-idle events
 local function keepAlive()
   -- m.log.d('keep alive')
+  idleTime = os.time()
   timer.eventtap:stop()
-  counter.idle.reset()
   timer.throttle = hs.timer.doAfter(K.TIMING.EVENT_THROTTLE, onThrottle)
 end
 
@@ -229,10 +230,10 @@ local function init()
   timer.tick = hs.timer.new(K.TIMING.TICK, onTick)
 
   if mode == K.MODE.AWARENESS then
+    idleTime = os.time()
     state = K.STATE.RUNNING
     timer.idle = hs.timer.new(K.TIMING.IDLE, onIdle)
     timer.eventtap = hs.eventtap.new(K.ANTI_IDLE.EVENTS, keepAlive)
-    counter.idle = ucounter.new('idle')
     counter.retries = ucounter.new('retries')
     counter.tick = ucounter.new('tick')
     m.run()
@@ -323,6 +324,7 @@ function m.stop()
   timer = nil
   counter = nil
   chime = nil
+  idleTime = nil
 end
 
 return m
