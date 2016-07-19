@@ -56,7 +56,7 @@ cfg.browser = {
   },
 }
 
-cfg.browser.defaultApp = cfg.browser.apps.firefox
+cfg.browser.defaultApp = 'org.mozilla.firefox'
 
 ----------------
 --  caffeine  --
