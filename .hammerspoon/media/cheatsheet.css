@@ -54,7 +54,7 @@ html, body {
   background-color: #333;
   color: #bbb;
   font-family: Verdana, sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.5em;
 }
 
@@ -201,7 +201,7 @@ pre {
   /* Use an auto scroll box for long lines, unless word-wrap is enabled */
   white-space: pre;
   overflow: auto;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 /* All inline code spans */
