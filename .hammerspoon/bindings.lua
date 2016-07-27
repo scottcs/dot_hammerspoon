@@ -82,6 +82,7 @@ function bindings.bind()
     {key = 'm',  fn = uapp.toggleSkypeMute},
     {key = 'p',  fn = hsm.songs.playPause},
     {key = 'r',  fn = hs_reload},
+    {key = 's',  fn = hsm.cheatsheet.toggle},
     {key = 't',  fn = hsm.songs.getInfo},
     {key = 'v',  fn = uapp.forcePaste},
     {key = 'x',  fn = hsm.cheatsheet.chooserToggle},

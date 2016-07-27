@@ -145,7 +145,7 @@ local function toID(...) return table.concat({...}, '.') end
 
 -- return valid id if the cheatsheet exists
 local function findCheatsheet(id, default)
-  -- m.log.d('looking for id:', id)
+  -- m.log.d('looking for id:', id, ufile.exists(toPath(id)))
   return ufile.exists(toPath(id)) and id or default
 end
 
@@ -155,7 +155,10 @@ local function allNamesFromContext(existing)
   -- to most specific.
   local app = hs.application.frontmostApplication()
   local id = app:bundleID()
-  local names = {m.cfg.defaultName, id}
+  local names = {}
+  for _,name in ipairs{m.cfg.defaultName, id} do
+    if findCheatsheet(name, false) then names[#names+1] = name end
+  end
 
   -- TODO: make this better. I'm not happy with it. It works ok for my
   -- particular tmux/nvim setup.
@@ -214,7 +217,7 @@ local function allNamesFromContext(existing)
     end
   end
 
-  m.log.d('names', hs.inspect(names))
+  -- m.log.d('names', hs.inspect(names))
   return names
 end
 
@@ -355,7 +358,8 @@ local function loadCheatsheet(name, callback)
 end
 
 -- show the given named cheatsheet (if it exists) on-screen
-local function showCheatsheet(name)
+local function showCheatsheet(name, visibleValue)
+  visibleValue = visibleValue or 1
   if cheat_sheets[name] == nil then return end
   createView(cheat_sheets[name], name)
   hs.timer.waitUntil(
@@ -367,7 +371,7 @@ local function showCheatsheet(name)
           -- m.log.d('done loading (showing view now)', name)
           view:show()
           view:policyCallback(policy)
-          visible = name
+          visible = visibleValue
         end,
         0.05
       )
@@ -475,6 +479,22 @@ local function choiceCallback(choice)
   end
 end
 
+local function loadOrShowCheatsheet(name, visibleValue)
+  if shouldUpdate(name) then
+    loadCheatsheet(name, function()
+      showCheatsheet(name, visibleValue)
+    end)
+  else
+    showCheatsheet(name, visibleValue)
+  end
+end
+
+local function errNoCheatsheets()
+  m.log.e('No cheatsheets found! Please check that:\n',
+  'the directory exists:', m.cfg.path.dir, '\n',
+  'the default file exists:', toPath(m.cfg.defaultName))
+end
+
 -- show/hide the named sheet (if name is given), else the sheet determined from
 -- the currently focused application.
 function m.toggle(name)
@@ -483,17 +503,9 @@ function m.toggle(name)
   else
     name = name or findNameFromContext()
     if name == nil then
-      m.log.e('No cheatsheets found! Please check that:\n',
-      'the directory exists:', m.cfg.path.dir, '\n',
-      'the default file exists:', toPath(m.cfg.defaultName))
+      errNoCheatsheets()
     else
-      if shouldUpdate(name) then
-        loadCheatsheet(name, function()
-          showCheatsheet(name)
-        end)
-      else
-        showCheatsheet(name)
-      end
+      loadOrShowCheatsheet(name)
     end
   end
 end
@@ -501,7 +513,18 @@ end
 -- cycle through relevant sheets, determined from the currently focused
 -- application.
 function m.cycle()
-  m.toggle()
+  local names = allNamesFromContext(true)
+  if #names == 0 then
+    errNoCheatsheets()
+  else
+    local lastSheet = visible or #names+1
+    if visible then hideCheatsheet() end
+
+    if lastSheet > 1 then
+      local nextSheet = lastSheet - 1
+      loadOrShowCheatsheet(names[nextSheet], nextSheet)
+    end
+  end
 end
 
 -- toggle chooser visibility
