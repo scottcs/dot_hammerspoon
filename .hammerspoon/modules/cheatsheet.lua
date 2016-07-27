@@ -150,13 +150,12 @@ local function findCheatsheet(id, default)
 end
 
 -- returns a set of names to look for within the current application context.
-local function allNamesFromContext()
-  -- names is a table where keys are the names, and the values are the
-  -- weights, so that the list is unique but sortable
-  local names = {[m.cfg.defaultName] = 1}
+local function allNamesFromContext(existing)
+  -- names is an array where items are the names, ordered by least specific
+  -- to most specific.
   local app = hs.application.frontmostApplication()
   local id = app:bundleID()
-  names[id] = 2
+  local names = {m.cfg.defaultName, id}
 
   -- TODO: make this better. I'm not happy with it. It works ok for my
   -- particular tmux/nvim setup.
@@ -176,7 +175,6 @@ local function allNamesFromContext()
 
     local parts = parseTitle(title)
     local name = id
-    local weight = 3
     local terminals = {
       ['com.apple.Terminal'] = true,
       ['com.googlecode.iterm2'] = true,
@@ -208,13 +206,15 @@ local function allNamesFromContext()
       if numParts > m.cfg.maxParts then break end
 
       name = toID(name, part)
-      names[name] = weight
-      weight = weight + 1
+      if not existing or (existing and findCheatsheet(name, false)) then
+        names[#names+1] = name
+      end
+
       numParts = numParts + 1
     end
   end
 
-  -- m.log.d('names', hs.inspect(names))
+  m.log.d('names', hs.inspect(names))
   return names
 end
 
@@ -222,21 +222,8 @@ end
 -- potentially extra data about the focused window (e.g. current tmux tab or
 -- currently running command in a terminal window).
 local function findNameFromContext()
-  local names = allNamesFromContext()
-  local id = nil
-  local heaviest = 0
-
-  for name, weight in pairs(names) do
-    if heaviest < weight then
-      local found = findCheatsheet(name, id)
-      if found ~= id then
-        heaviest = weight
-        id = found
-      end
-    end
-  end
-
-  return id
+  local names = allNamesFromContext(true)
+  return names[#names]
 end
 
 -- load the stylsheet for the webview
@@ -380,7 +367,7 @@ local function showCheatsheet(name)
           -- m.log.d('done loading (showing view now)', name)
           view:show()
           view:policyCallback(policy)
-          visible = true
+          visible = name
         end,
         0.05
       )
@@ -395,7 +382,7 @@ local function hideCheatsheet()
     view:delete()
     view = nil
   end
-  visible = false
+  visible = nil
 end
 
 -- edit a cheatsheet
@@ -430,7 +417,7 @@ local function showChooser()
     local names = allNamesFromContext()
     local choices = {}
 
-    for name, weight in pairs(names) do
+    for weight, name in ipairs(names) do
       local exists = findCheatsheet(name, false) ~= false
       choices[#choices+1] = {
         text = name,
@@ -511,6 +498,12 @@ function m.toggle(name)
   end
 end
 
+-- cycle through relevant sheets, determined from the currently focused
+-- application.
+function m.cycle()
+  m.toggle()
+end
+
 -- toggle chooser visibility
 function m.chooserToggle()
   if chooser ~= nil then
@@ -538,7 +531,6 @@ function m.stop()
   cheat_sheets = nil
   last_changed = nil
   chooser = nil
-  visible = nil
   css = nil
 end
 

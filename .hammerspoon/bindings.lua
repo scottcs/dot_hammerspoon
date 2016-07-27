@@ -78,7 +78,7 @@ function bindings.bind()
     {key = '\\', fn = hsm.caffeine.toggle},
     {key = ']',  fn = hsm.songs.nextTrack},
     {key = '`',  fn = hsm.songs.rateSong0},
-    {key = 'c',  fn = hsm.cheatsheet.toggle},
+    {key = 'c',  fn = hsm.cheatsheet.cycle},
     {key = 'm',  fn = uapp.toggleSkypeMute},
     {key = 'p',  fn = hsm.songs.playPause},
     {key = 'r',  fn = hs_reload},
