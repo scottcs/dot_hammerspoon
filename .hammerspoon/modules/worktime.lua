@@ -66,11 +66,14 @@ local idleTime = nil
 local function ringChime(worktimeChime, num)
   -- m.log.d('CHIME')
   num = num or 1
+  audio = hs.audiodevice.current()
 
   for i=1,num,1 do
     chime.timer[#chime.timer+1] = hs.timer.doAfter((i-1)*m.cfg.awareness.time.chimeRepeat, function()
       if uapp.getiTunesPlayerState() == ustr.unquote(hs.itunes.state_playing)
-        or uapp.getSpotifyPlayerState() == ustr.unquote(hs.spotify.state_playing) then
+        or uapp.getSpotifyPlayerState() == ustr.unquote(hs.spotify.state_playing)
+        or audio.volume == 0
+        or audio.muted == true then
         hs.alert.show(GLYPH.CHIME, m.cfg.awareness.time.chimeRepeat)
       else
         local snd = sound.getByFile(worktimeChime.file)

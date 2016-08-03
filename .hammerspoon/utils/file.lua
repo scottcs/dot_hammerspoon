@@ -31,7 +31,7 @@ function lib.makeParentDir(path)
   local parent, _, _ = lib.splitPath(path)
   local ok, err = hs.fs.mkdir(parent)
   if ok == nil then
-    if err == "File exists" then
+    if err == 'File exists' then
       ok = true
     end
   end
