@@ -160,8 +160,13 @@ cfg.weather = {
   minPrecipProbability = 0.249,   -- minimum to show precipitation details
 
   api = {  -- forecast.io API config
-    key = 'YOUR_API_KEY',
-    maxCalls = 950,  -- forecast.io only allows 1000 per day
+    key = 'YOUR_FORECAST_API_KEY',
+    maxCalls = 950,  -- forecast.io only allows 1,000 per day
+  },
+
+  geoapi = {
+    key = 'YOUR_GOOGLE_GEO_API_KEY',
+    maxCalls = 2500,  -- google geolocation api max is 2,500 per day
   },
 
   file     = ufile.toPath(cfg.global.paths.data,  'weather.json'),

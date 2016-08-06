@@ -13,6 +13,8 @@ local next = next
 local OPENURLBASE = 'http://forecast.io/#/f/'
 local APIURL = 'https://api.forecast.io/forecast'
 local APICALLSHEADER = 'X-Forecast-API-Calls'
+local GEOAPIURL = 'https://maps.googleapis.com/maps/api/geocode/json?'
+local GEOAPICALLSHEADER = 'X-API-Calls'
 local DUMMYITEM = {title='...', disabled=true}
 
 local menu = nil
@@ -267,8 +269,16 @@ local function updateMenu(data)
 
   if nowtemp ~= nil then
     local style = getStyle(nowtemp)
+    local tip = ''
+
+    if loc ~= nil and loc.name ~= nil then
+      tip = string.format('%s', loc.name)
+    else
+      tip = string.format('%s%s %s', prefix, totemp(nowtemp), nowsumm)
+    end
+
     menu:setTitle(hs.styledtext.new(string.format('%s%-7s', prefix, totemp(nowtemp)), style))
-    menu:setTooltip(string.format('%s%s %s', prefix, totemp(nowtemp), nowsumm))
+    menu:setTooltip(tip)
   end
 end
 
@@ -299,6 +309,30 @@ local function onAsyncGet(status, body, headers)
   end
 end
 
+local function onAsyncReverseGeo(status, body, headers)
+  -- Unfortunately, no way to currently get number of queries from headers,
+  -- but since we only call after calling forecast.io, and google's api is much
+  -- more generous, we shouldn't run into trouble. Right??
+  -- m.log.d('hs.inspect(headers)', hs.inspect(headers))
+
+  if status < 0 then
+    m.log.e(body)
+    return
+  end
+
+  -- save location (find longest formatted address)
+  local data = hs.json.decode(body)
+  local longest = ''
+  for i,result in ipairs(data.results) do
+    if result.formatted_address ~= nil then
+      if string.len(result.formatted_address) > string.len(longest) then
+        longest = result.formatted_address
+      end
+    end
+  end
+  if longest ~= '' then loc.name = longest end
+end
+
 -- callback called when we want to download new weather data
 local function onFetchTick()
   if loc == nil then return end
@@ -307,6 +341,11 @@ local function onFetchTick()
   url = url..'/'..loc.latitude..','..loc.longitude
   url = url..'?exclude=flags'
   hs.http.asyncGet(url, nil, onAsyncGet)
+
+  url = GEOAPIURL..'latlng='
+  url = url..loc.latitude..','..loc.longitude
+  url = url..'&key='..m.cfg.geoapi.key
+  hs.http.asyncGet(url, nil, onAsyncReverseGeo)
 end
 
 -- callback called when we want to grab our current latitude/longitude
