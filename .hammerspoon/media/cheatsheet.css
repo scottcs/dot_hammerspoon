@@ -35,6 +35,25 @@ div#TOC, nav#TOC {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: "Helvetica Neue", Helvetica, "Liberation Sans", Calibri, Arial, sans-serif;
+  font-weight: bolder;
+  margin: 0 0 0.5em 0;
+  padding-bottom: 3px;
+  border-color: #444;
+  border-width: 0 0 2px 0;
+  border-style: none none solid none;
+}
+
+h1 {
+  font-size: 1.32em;
+}
+
+h2 {
+  font-size: 1.18em;
+}
+
+/* Don't really need more than 3 header levels on cheatsheets */
+h3, h4, h5, h6 {
+  font-size: 1.04em;
 }
 
 /* Pandoc with --section-divs option */
@@ -54,7 +73,7 @@ html, body {
   background-color: #333;
   color: #bbb;
   font-family: Verdana, sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5em;
 }
 
@@ -71,7 +90,7 @@ div.box {
   margin: 8px;
 }
 
-p {}
+p { margin: 0 0 1.25em 0; }
 
 blockquote {
   font-style: italic;
@@ -132,7 +151,7 @@ a:link {
   border-color: #888;
   border-width: 0 0 1px 0;
   border-style: none none solid none;
-  padding: 3px 0px 2px 0px;
+  padding: 3px 0px 1px 0px;
   background-color: inherit;
 }
 
@@ -141,7 +160,7 @@ a:visited {
   border-color: #999;
   border-width: 0 0 1px 0;
   border-style: none none dotted none;
-  padding: 3px 0px 2px 0px;
+  padding: 3px 0px 1px 0px;
   background-color: inherit;
 }
 
@@ -198,10 +217,11 @@ pre {
    * background */
   margin-left:  0.5em;
   margin-right: 0.5em;
+  margin-top: 0;
+  margin-bottom: 1.25em;
   /* Use an auto scroll box for long lines, unless word-wrap is enabled */
   white-space: pre;
   overflow: auto;
-  font-size: 12px;
 }
 
 /* All inline code spans */
