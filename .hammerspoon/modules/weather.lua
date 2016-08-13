@@ -240,6 +240,23 @@ local function getIconPath(icon)
   return nil
 end
 
+-- update the menu item tooltip
+local function updateMenuTooltip()
+  if menu == nil then return end
+
+  local tip = 'Location Unknown'
+
+  if loc ~= nil then
+    if loc.name ~= nil then
+      tip = string.format('%s', loc.name)
+    else
+      tip = string.format('%s,%s', loc.latitude, loc.longitude)
+    end
+  end
+
+  menu:setTooltip(tip)
+end
+
 -- update the menu item
 local function updateMenu(data)
   if menu == nil then return end
@@ -269,17 +286,10 @@ local function updateMenu(data)
 
   if nowtemp ~= nil then
     local style = getStyle(nowtemp)
-    local tip = ''
-
-    if loc ~= nil and loc.name ~= nil then
-      tip = string.format('%s', loc.name)
-    else
-      tip = string.format('%s%s %s', prefix, totemp(nowtemp), nowsumm)
-    end
-
     menu:setTitle(hs.styledtext.new(string.format('%s%-7s', prefix, totemp(nowtemp)), style))
-    menu:setTooltip(tip)
   end
+
+  updateMenuTooltip()
 end
 
 -- asynchronously contact the forecast.io api to get new weather data via http
@@ -357,6 +367,7 @@ local function onLocTick()
     loc = hs.location.get()
     if loc == nil then m.log.w('Location not found!') end
     hs.location.stop()
+    updateMenuTooltip()
   end):start()
 end
 
