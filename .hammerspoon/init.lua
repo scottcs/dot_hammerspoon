@@ -3,7 +3,6 @@ local LOGLEVEL = 'debug'
 -- List of modules to load (found in modules/ dir)
 local modules = {
   'appwindows',
-  'battery',
   'browser',
   'caffeine',
   'cheatsheet',
