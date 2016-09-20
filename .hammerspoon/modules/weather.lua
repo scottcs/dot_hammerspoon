@@ -1,5 +1,5 @@
 -- module: weather
--- Use the forecast.io API to grab local weather info and display it in a
+-- Use the darksky.net API to grab local weather info and display it in a
 -- menubar item.
 --
 local m = {}
@@ -10,8 +10,8 @@ local utime = require('utils.time')
 local next = next
 
 -- constants
-local OPENURLBASE = 'http://forecast.io/#/f/'
-local APIURL = 'https://api.forecast.io/forecast'
+local OPENURLBASE = 'http://darksky.net/#/f/'
+local APIURL = 'https://api.darksky.net/forecast'
 local APICALLSHEADER = 'X-Forecast-API-Calls'
 local GEOAPIURL = 'https://maps.googleapis.com/maps/api/geocode/json?'
 local GEOAPICALLSHEADER = 'X-API-Calls'
@@ -52,7 +52,7 @@ local function toprecip(dataPoint)
     dataPoint.precipType)
 end
 
--- open the forecast.io web page with the current location
+-- open the darksky.net web page with the current location
 local function openForecast()
   if loc == nil then return end
 
@@ -292,7 +292,7 @@ local function updateMenu(data)
   updateMenuTooltip()
 end
 
--- asynchronously contact the forecast.io api to get new weather data via http
+-- asynchronously contact the darksky.net api to get new weather data via http
 local function onAsyncGet(status, body, headers)
   if headers[APICALLSHEADER] then
     local calls = tonumber(headers[APICALLSHEADER])
@@ -321,7 +321,7 @@ end
 
 local function onAsyncReverseGeo(status, body, headers)
   -- Unfortunately, no way to currently get number of queries from headers,
-  -- but since we only call after calling forecast.io, and google's api is much
+  -- but since we only call after calling darksky.net, and google's api is much
   -- more generous, we shouldn't run into trouble. Right??
   -- m.log.d('hs.inspect(headers)', hs.inspect(headers))
 
