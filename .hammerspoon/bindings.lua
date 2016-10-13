@@ -7,13 +7,25 @@ local uapp = require('utils.app')
 
 -- define some modifier key combinations
 local mod = {
+  s      = {'shift'},
+  a      = {'alt'},
   cc     = {'cmd', 'ctrl'},
   ca     = {'cmd', 'alt'},
   as     = {'alt', 'shift'},
   cas    = {'cmd', 'alt', 'shift'},
-  hyper  = {'cmd', 'alt', 'ctrl'},  -- mapped to L_CTRL with Karabiner and Seil
-  shyper = {'cmd', 'alt', 'ctrl', 'shift'},
 }
+
+-- Hyper key in Sierra
+local hyper = hs.hotkey.modal.new({}, 'F17')
+
+-- Enter/Exit Hyper Mode when F18 is pressed/released
+local pressedF18 = function() hyper:enter() end
+local releasedF18 = function() hyper:exit() end
+
+-- Bind the Hyper key
+-- Also requires Karabiner-Elements to bind left_control to F18
+hs.hotkey.bind({}, 'F18', pressedF18, releasedF18)
+hs.hotkey.bind(mod.s, 'F18', pressedF18, releasedF18)
 
 function bindings.bind()
   -- launch and focus applications
@@ -40,7 +52,7 @@ function bindings.bind()
       end
     end
 
-    hs.hotkey.bind(mod.hyper, item.key, appActivation)
+    hyper:bind({}, item.key, appActivation)
   end)
 
   -- toggle the hammerspoon console, focusing on the previous app when hidden
@@ -89,14 +101,14 @@ function bindings.bind()
     {key = 'y',  fn = toggleConsole},
     {key = 'z',  fn = maximizeFrontmost},
   }, function(object)
-    hs.hotkey.bind(mod.shyper, object.key, object.fn)
+    hyper:bind(mod.s, object.key, object.fn)
   end)
 
   -- bindings for the spacebar
-  hs.hotkey.bind({'alt'},    hs.keycodes.map.space, hsm.scratchpad.toggle)
+  hs.hotkey.bind(mod.a,    hs.keycodes.map.space, hsm.scratchpad.toggle)
   hs.hotkey.bind(mod.as,     hs.keycodes.map.space, hsm.timer.toggle)
-  hs.hotkey.bind(mod.hyper,  hs.keycodes.map.space, hsm.notational.toggle)
-  hs.hotkey.bind(mod.shyper, hs.keycodes.map.space, function()
+  hyper:bind({},  hs.keycodes.map.space, hsm.notational.toggle)
+  hyper:bind(mod.s, hs.keycodes.map.space, function()
     hsm.notational.toggle(hsm.notational.cfg.path.til)
   end)
 end
