@@ -25,17 +25,27 @@ local pathWatcher = nil
 
 -- get a styledtext style based on the given temperature
 local function getStyle(temp)
-  local style = m.cfg.styles.default
-  if temp > m.cfg.tempThresholds.alert then
+  local style = m.cfg.styles.tooDamnCold
+  -- round our temp
+  temp = math.floor(temp + 0.5)
+  if temp >= m.cfg.tempThresholds.alert then
     style = m.cfg.styles.alert
-  elseif temp > m.cfg.tempThresholds.tooDamnHot then
+  elseif temp >= m.cfg.tempThresholds.tooDamnHot then
     style = m.cfg.styles.tooDamnHot
-  elseif temp > m.cfg.tempThresholds.tooHot then
+  elseif temp >= m.cfg.tempThresholds.tooHot then
     style = m.cfg.styles.tooHot
-  elseif temp > m.cfg.tempThresholds.hot then
+  elseif temp >= m.cfg.tempThresholds.hot then
     style = m.cfg.styles.hot
-  elseif temp > m.cfg.tempThresholds.warm then
+  elseif temp >= m.cfg.tempThresholds.warm then
     style = m.cfg.styles.warm
+  elseif temp >= m.cfg.tempThresholds.default then
+    style = m.cfg.styles.default
+  elseif temp >= m.cfg.tempThresholds.cool then
+    style = m.cfg.styles.cool
+  elseif temp >= m.cfg.tempThresholds.cold then
+    style = m.cfg.styles.cold
+  elseif temp >= m.cfg.tempThresholds.tooCold then
+    style = m.cfg.styles.tooCold
   end
   return style
 end

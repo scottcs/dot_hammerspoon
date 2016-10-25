@@ -172,16 +172,41 @@ cfg.weather = {
   file     = ufile.toPath(cfg.global.paths.data,  'weather.json'),
   iconPath = ufile.toPath(cfg.global.paths.media, 'weather'),
 
-  tempThresholds = {  -- Used for float comparisons, so +0.5 is easier
-    warm        = 79.5,
-    hot         = 87.5,
-    tooHot      = 94.5,
-    tooDamnHot  = 99.5,
-    alert       = 104.5,
+  tempThresholds = {
+    -- tooDamnCold is anything below tooCold
+    tooCold     = 32,
+    cold        = 40,
+    cool        = 48,
+    default     = 58,
+    warm        = 80,
+    hot         = 88,
+    tooHot      = 95,
+    tooDamnHot  = 100,
+    alert       = 105,
   },
 
   -- hs.styledtext styles
   styles = {
+    tooDamnCold = {
+      font  = MONOFONT,
+      size  = 13,
+      color = {red=0.367, green=0.600, blue=1.000, alpha=1},
+    },
+    tooCold = {
+      font  = MONOFONT,
+      size  = 13,
+      color = {red=0.529, green=0.754, blue=1.000, alpha=1},
+    },
+    cold = {
+      font  = MONOFONT,
+      size  = 13,
+      color = {red=0.664, green=0.939, blue=1.000, alpha=1},
+    },
+    cool = {
+      font  = MONOFONT,
+      size  = 13,
+      color = {red=0.823, green=0.967, blue=1.000, alpha=1},
+    },
     default = {
       font  = MONOFONT,
       size  = 13,
