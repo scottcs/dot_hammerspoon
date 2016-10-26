@@ -190,22 +190,22 @@ cfg.weather = {
     tooDamnCold = {
       font  = MONOFONT,
       size  = 13,
-      color = {red=0.367, green=0.600, blue=1.000, alpha=1},
+      color = {red=0.416, green=0.501, blue=1.000, alpha=1},
     },
     tooCold = {
       font  = MONOFONT,
       size  = 13,
-      color = {red=0.529, green=0.754, blue=1.000, alpha=1},
+      color = {red=0.515, green=0.642, blue=1.000, alpha=1},
     },
     cold = {
       font  = MONOFONT,
       size  = 13,
-      color = {red=0.664, green=0.939, blue=1.000, alpha=1},
+      color = {red=0.570, green=0.871, blue=1.000, alpha=1},
     },
     cool = {
       font  = MONOFONT,
       size  = 13,
-      color = {red=0.823, green=0.967, blue=1.000, alpha=1},
+      color = {red=0.746, green=0.997, blue=1.000, alpha=1},
     },
     default = {
       font  = MONOFONT,
