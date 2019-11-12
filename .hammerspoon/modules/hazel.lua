@@ -37,6 +37,7 @@ local function moveFileToPath(file, toPath)
     m.log.e('Error moving '..file..' to '..toPath..': '..stdErr)
   end
 
+  ufile.makeParentDir(toPath)
   ufile.move(file, toPath, true, onFileMoveSuccess, onFileMoveFailure)
 end
 

@@ -6,7 +6,9 @@ local modules = {
   'browser',
   'caffeine',
   'cheatsheet',
-  'hazel',
+  -- Do not use hazel module without configuring the Dump folder or you could
+  -- lose data!
+  -- 'hazel',
   'notational',
   'scratchpad',
   'songs',
